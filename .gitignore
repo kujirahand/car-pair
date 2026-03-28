@@ -1,3 +1,11 @@
+# car-pair
+
+data/*.csv
+data/*.json
+
+
+
+
 # CakePHP 3
 
 /vendor/*
