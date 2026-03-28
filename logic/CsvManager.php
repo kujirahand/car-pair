@@ -2,7 +2,7 @@
 
 class CsvManager {
     private $csvFile;
-    private $headers = ['id', 'name', 'family_id', 'gender', 'is_driver', 'participation_count'];
+    private $headers = ['id', 'name', 'furigana', 'family_id', 'gender', 'is_driver', 'participation_count'];
 
     public function __construct($csvFile = null) {
         if ($csvFile === null) {

@@ -24,6 +24,7 @@
                             <input type="checkbox" id="check-all" title="すべて選択">
                         </th>
                         <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;" title="クリックでソート">名前 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
+                        <th class="sortable" data-sort="furigana" style="cursor: pointer; user-select: none;" title="クリックでソート">ふりがな <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th>家族ID</th>
                         <th>タイプ</th>
                         <th class="sortable" data-sort="count" style="cursor: pointer; user-select: none;" title="クリックでソート">参加回数 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↓</span></th>
@@ -31,7 +32,7 @@
                 </thead>
                 <tbody>
                     <?php if (empty($members)): ?>
-                    <tr><td colspan="5" class="text-center text-muted py-5">名簿がありません。「名簿編集」から登録してください。</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-5">名簿がありません。「名簿編集」から登録してください。</td></tr>
                     <?php else: ?>
                     <?php foreach ($members as $m): ?>
                     <tr>
@@ -39,6 +40,7 @@
                             <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox">
                         </td>
                         <td class="name-cell"><?= htmlspecialchars($m['name']) ?></td>
+                        <td class="furigana-cell"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
                         <td><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
                         <td>
                             <?php if ($m['is_driver'] === '1'): ?>
@@ -140,6 +142,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentSort === 'name') {
                     valA = a.querySelector('.name-cell').textContent.trim();
                     valB = b.querySelector('.name-cell').textContent.trim();
+                    return valA.localeCompare(valB, 'ja') * currentDir;
+                } else if (currentSort === 'furigana') {
+                    valA = a.querySelector('.furigana-cell').textContent.trim();
+                    valB = b.querySelector('.furigana-cell').textContent.trim();
                     return valA.localeCompare(valB, 'ja') * currentDir;
                 } else if (currentSort === 'count') {
                     valA = parseInt(a.querySelector('.count-val strong').textContent, 10) || 0;

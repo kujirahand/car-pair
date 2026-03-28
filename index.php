@@ -44,6 +44,7 @@ if ($action === 'edit_list') {
         if (isset($_POST['add'])) {
             $csv->add([
                 'name' => $_POST['name'],
+                'furigana' => $_POST['furigana'],
                 'family_id' => $_POST['family_id'],
                 'gender' => $_POST['gender'],
                 'is_driver' => isset($_POST['is_driver']) ? '1' : '0',
@@ -52,6 +53,7 @@ if ($action === 'edit_list') {
         } elseif (isset($_POST['edit'])) {
             $csv->update($_POST['id'], [
                 'name' => $_POST['name'],
+                'furigana' => $_POST['furigana'] ?? '',
                 'family_id' => $_POST['family_id'],
                 'gender' => $_POST['gender'],
                 'is_driver' => isset($_POST['is_driver']) ? '1' : '0'

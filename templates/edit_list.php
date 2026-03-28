@@ -4,11 +4,16 @@
 
 <div class="grid layout-grid">
     <div class="card edit-form-card">
-        <h3 class="card-title">新規追加</h3>
-        <form action="?action=edit_list" method="post" class="stack form-inline-custom">
+        <h3 class="card-title" id="form-title">新規追加 / 編集</h3>
+        <form action="?action=edit_list" method="post" class="stack form-inline-custom" id="edit-form">
+            <input type="hidden" name="id" id="form-id" value="">
             <div class="form-group">
                 <label>名前</label>
                 <input type="text" name="name" class="form-control" required placeholder="例: 山田太郎">
+            </div>
+            <div class="form-group">
+                <label>ふりがな</label>
+                <input type="text" name="furigana" class="form-control" required placeholder="例: やまだたろう">
             </div>
             <div class="form-group">
                 <label>家族ID</label>
@@ -23,11 +28,14 @@
             </div>
             <div class="form-group checkbox-group">
                 <label>
-                    <input type="checkbox" name="is_driver" value="1">
+                    <input type="checkbox" name="is_driver" id="form-driver" value="1">
                     ドライバー
                 </label>
             </div>
-            <button type="submit" name="add" class="btn btn-primary" style="margin-top: 1.5rem;">登録する</button>
+            <div class="form-actions" style="margin-top: 1.5rem;">
+                <button type="submit" name="add" id="form-submit" class="btn btn-primary">登録する</button>
+                <button type="button" id="form-cancel" class="btn btn-outline" style="display: none;" onclick="resetForm()">キャンセル</button>
+            </div>
         </form>
     </div>
 
@@ -38,6 +46,7 @@
                 <thead>
                     <tr>
                         <th>名前</th>
+                        <th>ふりがな</th>
                         <th>家族ID</th>
                         <th>性別</th>
                         <th>ドライバー</th>
@@ -52,11 +61,13 @@
                     <?php foreach ($members as $m): ?>
                     <tr>
                         <td><?= htmlspecialchars($m['name']) ?></td>
+                        <td><?= htmlspecialchars($m['furigana']) ?></td>
                         <td><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
                         <td><?= $m['gender'] === 'M' ? '<span class="gender-m">男性</span>' : '<span class="gender-f">女性</span>' ?></td>
                         <td><?= $m['is_driver'] === '1' ? '🚗' : '-' ?></td>
                         <td><?= htmlspecialchars($m['participation_count']) ?> 回</td>
                         <td class="action-cell">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="editMember('<?= htmlspecialchars($m['id']) ?>', '<?= htmlspecialchars(addslashes($m['name'])) ?>', '<?= htmlspecialchars(addslashes($m['furigana'])) ?>', '<?= htmlspecialchars(addslashes($m['family_id'])) ?>', '<?= $m['gender'] ?>', '<?= $m['is_driver'] ?>')">編集</button>
                             <form action="?action=edit_list" method="post" style="display:inline;" onsubmit="return confirm('本当に削除しますか？');">
                                 <input type="hidden" name="id" value="<?= htmlspecialchars($m['id']) ?>">
                                 <button type="submit" name="delete" class="btn btn-sm btn-danger">削除</button>
@@ -70,3 +81,34 @@
         </div>
     </div>
 </div>
+
+<script>
+function editMember(id, name, furigana, family_id, gender, is_driver) {
+    document.getElementById('form-id').value = id;
+    document.querySelector('input[name="name"]').value = name;
+    document.querySelector('input[name="furigana"]').value = furigana;
+    document.querySelector('input[name="family_id"]').value = family_id;
+    document.querySelector('select[name="gender"]').value = gender;
+    document.getElementById('form-driver').checked = (is_driver === '1');
+    
+    // UIを編集モードに変更
+    document.getElementById('form-title').innerText = 'メンバー編集';
+    document.getElementById('form-submit').innerText = '更新する';
+    document.getElementById('form-submit').name = 'edit';
+    document.getElementById('form-cancel').style.display = 'inline-block';
+    
+    // スムーズスクロールでフォームへ移動
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+    document.getElementById('edit-form').reset();
+    document.getElementById('form-id').value = '';
+    
+    // UIを新規追加モードに戻す
+    document.getElementById('form-title').innerText = '新規追加 / 編集';
+    document.getElementById('form-submit').innerText = '登録する';
+    document.getElementById('form-submit').name = 'add';
+    document.getElementById('form-cancel').style.display = 'none';
+}
+</script>
