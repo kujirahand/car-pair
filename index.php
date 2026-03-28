@@ -39,6 +39,16 @@ if (!$auth->isLoggedIn()) {
 
 $csv = new CsvManager();
 
+if ($action === 'export_csv') {
+    $file = __DIR__ . '/data/list.csv';
+    if (file_exists($file)) {
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="list.csv"');
+        readfile($file);
+    }
+    exit;
+}
+
 if ($action === 'edit_list') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['add'])) {

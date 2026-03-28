@@ -16,6 +16,10 @@
     <?php endif; ?>
 
     <form action="?action=select_members" method="post" id="select-members-form">
+        <div class="mb-3">
+            <input type="search" id="member-search" class="form-control" placeholder="名前、ふりがな、家族IDで検索..." autocomplete="off">
+        </div>
+        
         <div class="table-responsive">
             <table class="table hover-table">
                 <thead>
@@ -107,8 +111,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ソート機能
     const tableBody = document.querySelector('.hover-table tbody');
+
+    // 検索フィルター機能
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            const rows = tableBody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const td = row.querySelector('td');
+                if (!td || td.colSpan > 1) return; // 空の場合のメッセージ行などはスキップ
+
+                const name = row.querySelector('.name-cell').textContent.toLowerCase();
+                const furigana = row.querySelector('.furigana-cell').textContent.toLowerCase();
+                const familyId = row.querySelector('.family-tag').textContent.toLowerCase();
+
+                if (name.includes(query) || furigana.includes(query) || familyId.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // ソート機能
     const sortHeaders = document.querySelectorAll('.sortable');
     let currentSort = 'count';
     let currentDir = -1; // -1: 降順, 1: 昇順
