@@ -79,6 +79,9 @@
                 </tbody>
             </table>
         </div>
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <a href="?action=export_csv" class="btn btn-outline">📥 CSVエクスポート</a>
+        </div>
     </div>
 </div>
 
