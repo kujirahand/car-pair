@@ -31,6 +31,8 @@
                         <th class="sortable" data-sort="furigana" style="cursor: pointer; user-select: none;" title="クリックでソート">ふりがな <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th>家族ID</th>
                         <th>タイプ</th>
+                        <th>ニックネーム</th>
+                        <th>備考</th>
                         <th class="sortable" data-sort="count" style="cursor: pointer; user-select: none;" title="クリックでソート">参加回数 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↓</span></th>
                     </tr>
                 </thead>
@@ -41,7 +43,7 @@
                     <?php foreach ($members as $m): ?>
                     <tr>
                         <td class="text-center checkbox-cell">
-                            <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox">
+                            <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox" <?= in_array($m['id'], $selectedIds) ? 'checked' : '' ?>>
                         </td>
                         <td class="name-cell"><?= htmlspecialchars($m['name']) ?></td>
                         <td class="furigana-cell"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
@@ -56,6 +58,8 @@
                                 <?= $m['gender'] === 'M' ? '男' : '女' ?>
                             </span>
                         </td>
+                        <td class="nickname-cell"><?= htmlspecialchars($m['nickname'] ?? '') ?></td>
+                        <td class="notes-cell"><?= htmlspecialchars($m['notes'] ?? '') ?></td>
                         <td class="count-val"><strong><?= htmlspecialchars($m['participation_count']) ?></strong> 回</td>
                     </tr>
                     <?php endforeach; ?>
@@ -93,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         countSpan.classList.toggle('active-count', count > 0);
     };
 
+    updateCount(); // Initialize state on load
+
     if (checkAll) {
         checkAll.addEventListener('change', (e) => {
             checkboxes.forEach(cb => cb.checked = e.target.checked);
@@ -127,8 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const name = row.querySelector('.name-cell').textContent.toLowerCase();
                 const furigana = row.querySelector('.furigana-cell').textContent.toLowerCase();
                 const familyId = row.querySelector('.family-tag').textContent.toLowerCase();
+                const nickname = row.querySelector('.nickname-cell').textContent.toLowerCase();
+                const notes = row.querySelector('.notes-cell').textContent.toLowerCase();
 
-                if (name.includes(query) || furigana.includes(query) || familyId.includes(query)) {
+                if (name.includes(query) || furigana.includes(query) || familyId.includes(query) || nickname.includes(query) || notes.includes(query)) {
                     row.style.display = '';
                 } else {
                     row.style.display = 'none';
