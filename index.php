@@ -5,6 +5,7 @@ require_once __DIR__ . '/logic/Auth.php';
 require_once __DIR__ . '/logic/CsvManager.php';
 require_once __DIR__ . '/logic/HistoryManager.php';
 require_once __DIR__ . '/logic/PairingAlgorithm.php';
+require_once __DIR__ . '/logic/SelectByScreenshot.php';
 
 $auth = new Auth();
 $action = isset($_GET['action']) ? $_GET['action'] : 'select_members';
@@ -108,6 +109,46 @@ if ($action === 'select_members') {
     });
     $selectedIds = $_SESSION['selected_members'] ?? [];
     $contentView = 'select_members.php';
+    require __DIR__ . '/templates/layout.php';
+    exit;
+}
+
+if ($action === 'select_by_screenshot') {
+    $error = '';
+    $step = 'upload';
+    $extractedText = '';
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $step = $_POST['step'] ?? 'upload';
+        $logic = new SelectByScreenshot();
+        
+        if ($step === 'confirm') {
+            $text = trim($_POST['extracted_text'] ?? '');
+            $extractedNames = array_filter(array_map('trim', explode("\n", $text)));
+            
+            $members = $csv->getAll();
+            $matchedIds = $logic->matchMembers($extractedNames, $members);
+            
+            $_SESSION['selected_members'] = $matchedIds;
+            $_SESSION['flash_message'] = count($matchedIds) . ' 人のメンバーをリストから抽出・選択しました！';
+            header('Location: ?action=select_members');
+            exit;
+        } else {
+            if (!isset($_FILES['screenshot']) || $_FILES['screenshot']['error'] !== UPLOAD_ERR_OK) {
+                $error = '画像のアップロードに失敗しました。';
+            } else {
+                try {
+                    $extractedNames = $logic->extractNamesFromImage($_FILES['screenshot']['tmp_name']);
+                    $extractedText = implode("\n", $extractedNames);
+                    $step = 'confirm';
+                } catch (Exception $e) {
+                    $error = $e->getMessage();
+                }
+            }
+        }
+    }
+    
+    $contentView = 'select_by_screenshot.php';
     require __DIR__ . '/templates/layout.php';
     exit;
 }

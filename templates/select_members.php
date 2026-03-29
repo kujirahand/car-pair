@@ -1,5 +1,6 @@
-<div class="page-header">
-    <h1 class="page-title">👥 今回の参加者を選択</h1>
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <h1 class="page-title" style="margin-bottom: 0;">👥 今回の参加者を選択</h1>
+    <a href="?action=select_by_screenshot" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📸 スクショから選択</a>
 </div>
 <style>
 .table tbody tr.selected-row {
