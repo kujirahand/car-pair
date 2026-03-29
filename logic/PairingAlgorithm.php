@@ -142,19 +142,28 @@ class PairingAlgorithm {
             return $cars;
         }
         
-        for ($c = 0; $c < count($cars); $c++) {
-            if (count($cars[$c]) + count($blocks[$idx]) <= 4) {
-                $originalCar = $cars[$c];
+        $carIndices = array_keys($cars);
+        shuffle($carIndices); // Randomize to find diverse solutions when counts are same
+        usort($carIndices, function($a, $b) use ($cars) {
+            return count($cars[$a]) <=> count($cars[$b]);
+        });
+        
+        $triedEmpty = false;
+        foreach ($carIndices as $c) {
+            $originalCar = $cars[$c];
+            
+            if (empty($originalCar)) {
+                if ($triedEmpty) continue; // symmetry breaking
+                $triedEmpty = true;
+            }
+
+            if (count($originalCar) + count($blocks[$idx]) <= 4) {
                 $cars[$c] = array_merge($cars[$c], $blocks[$idx]);
                 
                 $res = $this->backtrackPartition($cars, $blocks, $idx + 1, $allowMultipleDrivers);
                 if ($res !== false) return $res;
                 
                 $cars[$c] = $originalCar;
-                
-                if (empty($originalCar)) {
-                    break; // symmetry breaking
-                }
             }
         }
         return false;
@@ -210,6 +219,14 @@ class PairingAlgorithm {
         if (!empty($sizes)) {
             $diff = max($sizes) - min($sizes);
             $score += ($diff * 200); 
+            
+            // 分散もペナルティに加えて、少しの違いも平準化するよう配慮
+            $mean = array_sum($sizes) / count($sizes);
+            $variance = 0;
+            foreach ($sizes as $s) {
+                $variance += pow($s - $mean, 2);
+            }
+            $score += ($variance * 100);
         }
 
         return $score;
