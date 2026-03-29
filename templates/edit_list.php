@@ -17,7 +17,7 @@
             </div>
             <div class="form-group">
                 <label>家族ID</label>
-                <input type="text" name="family_id" class="form-control" required placeholder="例: F01">
+                <input type="text" name="family_id" class="form-control" required placeholder="例: 田中家">
             </div>
             <div class="form-group">
                 <label>性別</label>
@@ -31,6 +31,14 @@
                     <input type="checkbox" name="is_driver" id="form-driver" value="1">
                     ドライバー
                 </label>
+            </div>
+            <div class="form-group">
+                <label>ニックネーム</label>
+                <input type="text" name="nickname" id="form-nickname" class="form-control" placeholder="例: あだ名やZOOM名など">
+            </div>
+            <div class="form-group">
+                <label>備考</label>
+                <input type="text" name="notes" id="form-notes" class="form-control" placeholder="例: 午後から参加など">
             </div>
             <div class="form-actions" style="margin-top: 1.5rem;">
                 <button type="submit" name="add" id="form-submit" class="btn btn-primary">登録する</button>
@@ -50,6 +58,8 @@
                         <th>家族ID</th>
                         <th>性別</th>
                         <th>ドライバー</th>
+                        <th>ニックネーム</th>
+                        <th>備考</th>
                         <th>参加回数</th>
                         <th>操作</th>
                     </tr>
@@ -65,9 +75,11 @@
                         <td><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
                         <td><?= $m['gender'] === 'M' ? '<span class="gender-m">男性</span>' : '<span class="gender-f">女性</span>' ?></td>
                         <td><?= $m['is_driver'] === '1' ? '🚗' : '-' ?></td>
+                        <td><?= htmlspecialchars($m['nickname'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($m['notes'] ?? '') ?></td>
                         <td><?= htmlspecialchars($m['participation_count']) ?> 回</td>
                         <td class="action-cell">
-                            <button type="button" class="btn btn-sm btn-outline" onclick="editMember('<?= htmlspecialchars($m['id']) ?>', '<?= htmlspecialchars(addslashes($m['name'])) ?>', '<?= htmlspecialchars(addslashes($m['furigana'])) ?>', '<?= htmlspecialchars(addslashes($m['family_id'])) ?>', '<?= $m['gender'] ?>', '<?= $m['is_driver'] ?>')">編集</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="editMember('<?= htmlspecialchars($m['id']) ?>', '<?= htmlspecialchars(addslashes($m['name'])) ?>', '<?= htmlspecialchars(addslashes($m['furigana'])) ?>', '<?= htmlspecialchars(addslashes($m['family_id'])) ?>', '<?= $m['gender'] ?>', '<?= $m['is_driver'] ?>', '<?= htmlspecialchars(addslashes($m['nickname'] ?? '')) ?>', '<?= htmlspecialchars(addslashes($m['notes'] ?? '')) ?>')">編集</button>
                             <form action="?action=edit_list" method="post" style="display:inline;" onsubmit="return confirm('本当に削除しますか？');">
                                 <input type="hidden" name="id" value="<?= htmlspecialchars($m['id']) ?>">
                                 <button type="submit" name="delete" class="btn btn-sm btn-danger">削除</button>
@@ -86,13 +98,15 @@
 </div>
 
 <script>
-function editMember(id, name, furigana, family_id, gender, is_driver) {
+function editMember(id, name, furigana, family_id, gender, is_driver, nickname, notes) {
     document.getElementById('form-id').value = id;
     document.querySelector('input[name="name"]').value = name;
     document.querySelector('input[name="furigana"]').value = furigana;
     document.querySelector('input[name="family_id"]').value = family_id;
     document.querySelector('select[name="gender"]').value = gender;
     document.getElementById('form-driver').checked = (is_driver === '1');
+    document.getElementById('form-nickname').value = nickname;
+    document.getElementById('form-notes').value = notes;
     
     // UIを編集モードに変更
     document.getElementById('form-title').innerText = 'メンバー編集';
