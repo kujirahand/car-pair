@@ -2,6 +2,7 @@
     <h1 class="page-title">✨ 乗りあわせ候補</h1>
     
     <div class="action-buttons header-actions">
+        <a href="?action=select_members" class="btn btn-outline" style="margin-right: 8px;">↩️ 選び直す</a>
         <a href="?action=pairing" class="btn btn-outline">🔄 もう一回</a>
         <?php if (!isset($result['error'])): ?>
         <form action="?action=pairing" method="post" style="margin:0">
@@ -58,6 +59,7 @@
 
     <!-- Bottom Actions -->
     <div class="bottom-actions mt-5 text-center">
+        <a href="?action=select_members" class="btn btn-outline btn-lg mr-3">↩️ 選び直す</a>
         <a href="?action=pairing" class="btn btn-outline btn-lg mr-3">🔄 もう一回</a>
         <form action="?action=pairing" method="post" class="inline-block">
             <input type="hidden" name="pairing_result" value="<?= htmlspecialchars(json_encode($result['cars'])) ?>">

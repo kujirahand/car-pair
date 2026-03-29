@@ -43,7 +43,7 @@
                     <?php foreach ($members as $m): ?>
                     <tr>
                         <td class="text-center checkbox-cell">
-                            <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox">
+                            <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox" <?= in_array($m['id'], $selectedIds) ? 'checked' : '' ?>>
                         </td>
                         <td class="name-cell"><?= htmlspecialchars($m['name']) ?></td>
                         <td class="furigana-cell"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
@@ -96,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         countSpan.textContent = count;
         countSpan.classList.toggle('active-count', count > 0);
     };
+
+    updateCount(); // Initialize state on load
 
     if (checkAll) {
         checkAll.addEventListener('change', (e) => {
