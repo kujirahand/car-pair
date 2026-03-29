@@ -95,6 +95,23 @@
             <a href="?action=export_csv" class="btn btn-outline">📥 CSVエクスポート</a>
         </div>
     </div>
+
+    <!-- CSV Import Card -->
+    <div class="card import-card" style="grid-column: 1 / -1; margin-top: 1rem;">
+        <h3 class="card-title">📥 CSVインポート</h3>
+        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
+            エクスポートしたCSVと同じ形式のファイルを選択してください。
+        </p>
+        <form action="?action=edit_list" method="post" enctype="multipart/form-data" class="stack form-inline-custom">
+            <div class="form-group">
+                <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+            </div>
+            <div class="form-actions" style="margin-top: 1rem; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="submit" name="import_replace" class="btn btn-danger" onclick="return confirm('現在の名簿をすべて削除して、CSVの内容に差し替えます。よろしいですか？');">CSVインポート(全部差し替え)</button>
+                <button type="submit" name="import_delta" class="btn btn-primary">CSVインポート(差分追加)</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>

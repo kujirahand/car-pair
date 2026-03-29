@@ -130,4 +130,48 @@ class CsvManager {
         }
         $this->writeCsv($data);
     }
+
+    public function import($filePath, $replace = false) {
+        $file = fopen($filePath, 'r');
+        if (!$file) return false;
+
+        $newData = [];
+        $isFirst = true;
+        while (($row = fgetcsv($file, 0, ',', '"', '\\')) !== false) {
+            if ($isFirst) {
+                $isFirst = false;
+                continue;
+            }
+            if (count($row) >= 2) { // Minimum requirement: name, furigana
+                $item = [];
+                foreach ($this->headers as $index => $h) {
+                    if ($h === 'id') continue; // ID is auto-generated
+                    $item[$h] = isset($row[$index]) ? $row[$index] : '';
+                }
+                // Ensure participation_count is numeric
+                if (!isset($item['participation_count']) || $item['participation_count'] === '') {
+                    $item['participation_count'] = '0';
+                }
+                $newData[] = $item;
+            }
+        }
+        fclose($file);
+
+        if ($replace) {
+            $this->writeCsv([]); // Clear existing
+            foreach ($newData as $item) {
+                $this->add($item);
+            }
+        } else {
+            $existingData = $this->readCsv();
+            $existingNames = array_column($existingData, 'name');
+            foreach ($newData as $item) {
+                if (!in_array($item['name'], $existingNames)) {
+                    $this->add($item);
+                    $existingNames[] = $item['name'];
+                }
+            }
+        }
+        return true;
+    }
 }

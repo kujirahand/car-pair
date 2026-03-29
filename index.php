@@ -74,6 +74,11 @@ if ($action === 'edit_list') {
             ]);
         } elseif (isset($_POST['delete'])) {
             $csv->delete($_POST['id']);
+        } elseif (isset($_POST['import_replace']) || isset($_POST['import_delta'])) {
+            if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
+                $isReplace = isset($_POST['import_replace']);
+                $csv->import($_FILES['csv_file']['tmp_name'], $isReplace);
+            }
         }
         header('Location: ?action=edit_list');
         exit;
