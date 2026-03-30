@@ -1,6 +1,9 @@
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
     <h1 class="page-title" style="margin-bottom: 0;">👥 今回の参加者を選択</h1>
-    <a href="?action=select_by_screenshot" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📸 スクショから選択</a>
+    <div style="display: flex; gap: 10px;">
+        <a href="?action=select_by_screenshot" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📸 スクショから選択</a>
+        <button type="button" id="clear-all-btn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); background: #fff;">🗑️ 全部クリア</button>
+    </div>
 </div>
 <style>
 .table tbody tr.selected-row {
@@ -8,6 +11,80 @@
 }
 .table tbody tr.selected-row td {
     border-bottom-color: #bfdbfe;
+}
+
+/* Mobile responsive table */
+@media (max-width: 768px) {
+    .table-responsive table,
+    .table-responsive thead,
+    .table-responsive tbody,
+    .table-responsive th,
+    .table-responsive td,
+    .table-responsive tr {
+        display: block;
+    }
+
+    /* Hide table headers (but not display: none;, for accessibility) */
+    .table-responsive thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .table-responsive tr {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        background: #fff;
+        padding: 0.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .table-responsive td {
+        border: none;
+        border-bottom: 1px solid #f3f4f6;
+        position: relative;
+        padding-left: 35%;
+        text-align: right;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .table-responsive td:last-child {
+        border-bottom: 0;
+    }
+
+    /* Column titles for mobile */
+    .table-responsive td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        width: 30%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    /* Special styling for checkbox row on mobile */
+    .table-responsive td.checkbox-cell {
+        padding-left: 1rem;
+        justify-content: flex-start;
+        background: #f8fafc;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        margin: -0.5rem -0.5rem 0.5rem -0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .table-responsive td.checkbox-cell::before {
+        display: none;
+    }
 }
 </style>
 
@@ -39,17 +116,17 @@
                 </thead>
                 <tbody>
                     <?php if (empty($members)): ?>
-                    <tr><td colspan="6" class="text-center text-muted py-5">名簿がありません。「名簿編集」から登録してください。</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-5">名簿がありません。「名簿編集」から登録してください。</td></tr>
                     <?php else: ?>
                     <?php foreach ($members as $m): ?>
                     <tr>
-                        <td class="text-center checkbox-cell">
+                        <td class="text-center checkbox-cell" data-label="選択">
                             <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox" <?= in_array($m['id'], $selectedIds) ? 'checked' : '' ?>>
                         </td>
-                        <td class="name-cell"><?= htmlspecialchars($m['name']) ?></td>
-                        <td class="furigana-cell"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
-                        <td><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
-                        <td>
+                        <td class="name-cell" data-label="名前"><?= htmlspecialchars($m['name']) ?></td>
+                        <td class="furigana-cell" data-label="ふりがな"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
+                        <td data-label="家族ID"><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
+                        <td data-label="タイプ">
                             <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
                                 <input type="checkbox" name="is_driver[<?= htmlspecialchars($m['id']) ?>]" value="1" <?= $m['is_driver'] === '1' ? 'checked' : '' ?> class="driver-checkbox">
                                 <span class="<?= $m['is_driver'] === '1' ? 'badge-driver' : 'badge-passenger' ?>">
@@ -60,9 +137,9 @@
                                 <?= $m['gender'] === 'M' ? '男' : '女' ?>
                             </span>
                         </td>
-                        <td class="nickname-cell"><?= htmlspecialchars($m['nickname'] ?? '') ?></td>
-                        <td class="notes-cell"><?= htmlspecialchars($m['notes'] ?? '') ?></td>
-                        <td class="count-val"><strong><?= htmlspecialchars($m['participation_count']) ?></strong> 回</td>
+                        <td class="nickname-cell" data-label="ニックネーム"><?= htmlspecialchars($m['nickname'] ?? '') ?></td>
+                        <td class="notes-cell" data-label="備考"><?= htmlspecialchars($m['notes'] ?? '') ?></td>
+                        <td class="count-val" data-label="参加回数"><strong><?= htmlspecialchars($m['participation_count']) ?></strong> 回</td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
@@ -105,6 +182,17 @@ document.addEventListener('DOMContentLoaded', () => {
         checkAll.addEventListener('change', (e) => {
             checkboxes.forEach(cb => cb.checked = e.target.checked);
             updateCount();
+        });
+    }
+
+    const clearAllBtn = document.getElementById('clear-all-btn');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm('全ての選択をクリアしますか？')) {
+                checkboxes.forEach(cb => cb.checked = false);
+                if (checkAll) checkAll.checked = false;
+                updateCount();
+            }
         });
     }
 
