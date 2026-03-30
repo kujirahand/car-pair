@@ -94,8 +94,14 @@ if ($action === 'select_members') {
     $error = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedIds = isset($_POST['selected_ids']) ? $_POST['selected_ids'] : [];
+        $isDriverOverrides = isset($_POST['is_driver']) ? $_POST['is_driver'] : [];
         if (!empty($selectedIds)) {
             $_SESSION['selected_members'] = $selectedIds;
+            $driverMap = [];
+            foreach ($selectedIds as $id) {
+                $driverMap[$id] = isset($isDriverOverrides[$id]);
+            }
+            $_SESSION['driver_overrides'] = $driverMap;
             header('Location: ?action=pairing');
             exit;
         } else {
@@ -104,6 +110,12 @@ if ($action === 'select_members') {
     }
     
     $members = $csv->getAll();
+    $driverOverrides = $_SESSION['driver_overrides'] ?? [];
+    foreach ($members as &$m) {
+        if (isset($driverOverrides[$m['id']])) {
+            $m['is_driver'] = $driverOverrides[$m['id']] ? '1' : '0';
+        }
+    }
     usort($members, function($a, $b) {
         return (int)$b['participation_count'] <=> (int)$a['participation_count'];
     });
@@ -161,6 +173,12 @@ if ($action === 'pairing') {
     }
 
     $members = $csv->getByIds($selectedIds);
+    $driverOverrides = $_SESSION['driver_overrides'] ?? [];
+    foreach ($members as &$m) {
+        if (isset($driverOverrides[$m['id']])) {
+            $m['is_driver'] = $driverOverrides[$m['id']] ? '1' : '0';
+        }
+    }
     $historyManager = new HistoryManager();
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['decide'])) {

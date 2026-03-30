@@ -50,11 +50,12 @@
                         <td class="furigana-cell"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
                         <td><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
                         <td>
-                            <?php if ($m['is_driver'] === '1'): ?>
-                            <span class="badge-driver">🚗 ドライバー</span>
-                            <?php else: ?>
-                            <span class="badge-passenger">👤 乗客</span>
-                            <?php endif; ?>
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[<?= htmlspecialchars($m['id']) ?>]" value="1" <?= $m['is_driver'] === '1' ? 'checked' : '' ?> class="driver-checkbox">
+                                <span class="<?= $m['is_driver'] === '1' ? 'badge-driver' : 'badge-passenger' ?>">
+                                    <?= $m['is_driver'] === '1' ? '🚗 ドライバー' : '👤 乗客' ?>
+                                </span>
+                            </label>
                             <span class="badge-gender-<?= strtolower($m['gender']) ?>">
                                 <?= $m['gender'] === 'M' ? '男' : '女' ?>
                             </span>
@@ -145,6 +146,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // ドライバー切り替え
+    document.querySelectorAll('.driver-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const badge = this.nextElementSibling;
+            if (this.checked) {
+                badge.className = 'badge-driver';
+                badge.innerHTML = '🚗 ドライバー';
+            } else {
+                badge.className = 'badge-passenger';
+                badge.innerHTML = '👤 乗客';
+            }
+        });
+    });
 
     // ソート機能
     const sortHeaders = document.querySelectorAll('.sortable');
