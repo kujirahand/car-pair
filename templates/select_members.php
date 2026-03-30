@@ -72,9 +72,9 @@
         
         <div class="form-actions sticky-actions">
             <div class="selection-summary">
-                選択中: <span id="selected-count" class="badge">0</span> 人
+                <span id="selected-count" class="badge">0</span> 人
             </div>
-            <button type="submit" class="btn btn-primary btn-lg pulse-hover">乗りあわせを決定する ⚡</button>
+            <button type="submit" class="btn btn-primary btn-lg pulse-hover">決定 ⚡</button>
         </div>
     </form>
 </div>
