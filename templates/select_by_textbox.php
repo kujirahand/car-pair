@@ -16,7 +16,7 @@
     <form action="?action=select_by_textbox" method="post" class="stack">
         <div class="form-group">
             <label for="member_text">参加者リスト（複数行OK）</label>
-            <textarea name="member_text" id="member_text" class="form-control" rows="12" style="font-family: monospace; font-size: 1.05em; line-height: 1.6;" placeholder="例)\nたろー\nはなちゃん\nやまだたろう\nすずきいちろう"><?= htmlspecialchars($inputText ?? '') ?></textarea>
+            <textarea name="member_text" id="member_text" class="form-control" rows="12" style="font-family: monospace; font-size: 1.05em; line-height: 1.6;" placeholder="(例)&#10たろー&#10はなちゃん&#10やまだたろう"><?= htmlspecialchars($inputText ?? '') ?></textarea>
         </div>
 
         <div class="form-actions mt-4" style="text-align: center;">

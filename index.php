@@ -183,7 +183,7 @@ if ($action === 'select_by_textbox') {
             if (empty($matchedIds)) {
                 $error = '名簿と一致するメンバーが見つかりませんでした。';
             } else {
-                $_SESSION['selected_members'] = $matchedIds;
+                $_SESSION['selected_members'] = array_merge($_SESSION['selected_members'] ?? [], $matchedIds);
                 $_SESSION['flash_message'] = count($matchedIds) . ' 人のメンバーをテキストから選択しました！';
                 header('Location: ?action=select_members');
                 exit;
