@@ -40,6 +40,10 @@
                 <label>備考</label>
                 <input type="text" name="notes" id="form-notes" class="form-control" placeholder="例: 午後から参加など">
             </div>
+            <div class="form-group">
+                <label>参加回数</label>
+                <input type="number" name="participation_count" id="form-count" class="form-control" value="0" min="0">
+            </div>
             <div class="form-actions" style="margin-top: 1.5rem;">
                 <button type="submit" name="add" id="form-submit" class="btn btn-primary">登録する</button>
                 <button type="button" id="form-cancel" class="btn btn-outline" style="display: none;" onclick="resetForm()">キャンセル</button>
@@ -79,7 +83,7 @@
                         <td><?= htmlspecialchars($m['notes'] ?? '') ?></td>
                         <td><?= htmlspecialchars($m['participation_count']) ?> 回</td>
                         <td class="action-cell">
-                            <button type="button" class="btn btn-sm btn-outline" onclick="editMember('<?= htmlspecialchars($m['id']) ?>', '<?= htmlspecialchars(addslashes($m['name'])) ?>', '<?= htmlspecialchars(addslashes($m['furigana'])) ?>', '<?= htmlspecialchars(addslashes($m['family_id'])) ?>', '<?= $m['gender'] ?>', '<?= $m['is_driver'] ?>', '<?= htmlspecialchars(addslashes($m['nickname'] ?? '')) ?>', '<?= htmlspecialchars(addslashes($m['notes'] ?? '')) ?>')">編集</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="editMember('<?= htmlspecialchars($m['id']) ?>', '<?= htmlspecialchars(addslashes($m['name'])) ?>', '<?= htmlspecialchars(addslashes($m['furigana'])) ?>', '<?= htmlspecialchars(addslashes($m['family_id'])) ?>', '<?= $m['gender'] ?>', '<?= $m['is_driver'] ?>', '<?= htmlspecialchars(addslashes($m['nickname'] ?? '')) ?>', '<?= htmlspecialchars(addslashes($m['notes'] ?? '')) ?>', '<?= $m['participation_count'] ?>')">編集</button>
                             <form action="?action=edit_list" method="post" style="display:inline;" onsubmit="return confirm('本当に削除しますか？');">
                                 <input type="hidden" name="id" value="<?= htmlspecialchars($m['id']) ?>">
                                 <button type="submit" name="delete" class="btn btn-sm btn-danger">削除</button>
@@ -115,7 +119,7 @@
 </div>
 
 <script>
-function editMember(id, name, furigana, family_id, gender, is_driver, nickname, notes) {
+function editMember(id, name, furigana, family_id, gender, is_driver, nickname, notes, participation_count) {
     document.getElementById('form-id').value = id;
     document.querySelector('input[name="name"]').value = name;
     document.querySelector('input[name="furigana"]').value = furigana;
@@ -124,6 +128,7 @@ function editMember(id, name, furigana, family_id, gender, is_driver, nickname, 
     document.getElementById('form-driver').checked = (is_driver === '1');
     document.getElementById('form-nickname').value = nickname;
     document.getElementById('form-notes').value = notes;
+    document.getElementById('form-count').value = participation_count;
     
     // UIを編集モードに変更
     document.getElementById('form-title').innerText = 'メンバー編集';

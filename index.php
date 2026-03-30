@@ -61,7 +61,7 @@ if ($action === 'edit_list') {
                 'is_driver' => isset($_POST['is_driver']) ? '1' : '0',
                 'nickname' => $_POST['nickname'] ?? '',
                 'notes' => $_POST['notes'] ?? '',
-                'participation_count' => '0'
+                'participation_count' => $_POST['participation_count'] ?? '0'
             ]);
         } elseif (isset($_POST['edit'])) {
             $csv->update($_POST['id'], [
@@ -71,7 +71,8 @@ if ($action === 'edit_list') {
                 'gender' => $_POST['gender'],
                 'is_driver' => isset($_POST['is_driver']) ? '1' : '0',
                 'nickname' => $_POST['nickname'] ?? '',
-                'notes' => $_POST['notes'] ?? ''
+                'notes' => $_POST['notes'] ?? '',
+                'participation_count' => $_POST['participation_count'] ?? '0'
             ]);
         } elseif (isset($_POST['delete'])) {
             $csv->delete($_POST['id']);
