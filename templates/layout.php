@@ -16,9 +16,9 @@
         <nav class="navbar">
             <div class="nav-brand">🚗 Car Pairing</div>
             <ul class="nav-links">
-                <li><a href="?action=select_members" class="<?= $action === 'select_members' ? 'active' : '' ?>">配車する</a></li>
+                <li><a href="?action=select_members" class="<?= $action === 'select_members' ? 'active' : '' ?>">配車</a></li>
                 <li><a href="?action=history" class="<?= $action === 'history' ? 'active' : '' ?>">履歴</a></li>
-                <li><a href="?action=edit_list" class="<?= $action === 'edit_list' ? 'active' : '' ?>">名簿編集</a></li>
+                <li><a href="?action=edit_list" class="<?= $action === 'edit_list' ? 'active' : '' ?>">名簿</a></li>
                 <li><a href="?action=logout" class="logout-btn">ログアウト</a></li>
             </ul>
         </nav>
@@ -38,6 +38,13 @@
             }
             ?>
         </main>
+    </div>
+    <div class="footer">
+        <div class="footer-content">
+            <p>Car Pairing App
+                <a href="https://github.com/kujirahand/car-pair">ソースコード</a>
+            </p>
+        </div>
     </div>
 </body>
 </html>

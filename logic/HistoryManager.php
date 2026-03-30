@@ -20,10 +20,18 @@ class HistoryManager {
 
     public function addHistory($pairingData) {
         $history = $this->getHistory();
-        $history[] = [
-            'date' => date('Y-m-d H:i:s'),
-            'cars' => $pairingData // array of cars, each car is an array of IDs
+        $record = [
+            'date' => date('Y-m-d H:i:s')
         ];
+        if (isset($pairingData['cars'])) {
+            $record['cars'] = $pairingData['cars'];
+            if (isset($pairingData['walk'])) {
+                $record['walk'] = $pairingData['walk'];
+            }
+        } else {
+            $record['cars'] = $pairingData; // fallback
+        }
+        $history[] = $record;
         file_put_contents($this->historyFile, json_encode($history, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 }

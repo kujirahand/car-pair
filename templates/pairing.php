@@ -6,7 +6,7 @@
         <a href="?action=pairing" class="btn btn-outline">🔄 もう一回</a>
         <?php if (!isset($result['error'])): ?>
         <form action="?action=pairing" method="post" style="margin:0">
-            <input type="hidden" name="pairing_result" value="<?= htmlspecialchars(json_encode($result['cars'])) ?>">
+            <input type="hidden" name="pairing_result" value="<?= htmlspecialchars(json_encode(['cars' => $result['cars'], 'walk' => $result['walk'] ?? []])) ?>">
             <button type="submit" name="decide" class="btn btn-success">✅ この組合せで決定</button>
         </form>
         <?php endif; ?>
@@ -55,6 +55,28 @@
             </ul>
         </div>
         <?php endforeach; ?>
+        
+        <?php if (!empty($result['walk'])): ?>
+        <div class="car-card" style="border-color: #94a3b8; background: #f8fafc;">
+            <div class="car-header" style="background: #e2e8f0; color: #475569;">
+                <h3>🚶 徒歩</h3>
+                <span class="badge" style="background: #94a3b8;"><?= count($result['walk']) ?>人</span>
+            </div>
+            <ul class="passenger-list">
+                <?php foreach ($result['walk'] as $p): ?>
+                <li class="is-passenger">
+                    <div class="passenger-info">
+                        <strong><?= htmlspecialchars($p['name']) ?></strong>
+                        <div class="passenger-meta">
+                            <span class="family-tag float"><?= htmlspecialchars($p['family_id']) ?></span>
+                            <?= $p['gender'] === 'M' ? '<span class="gender-m">♂</span>' : '<span class="gender-f">♀</span>' ?>
+                        </div>
+                    </div>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- Bottom Actions -->
@@ -62,7 +84,7 @@
         <a href="?action=select_members" class="btn btn-outline btn-lg mr-3">↩️ 選び直す</a>
         <a href="?action=pairing" class="btn btn-outline btn-lg mr-3">🔄 もう一回</a>
         <form action="?action=pairing" method="post" class="inline-block">
-            <input type="hidden" name="pairing_result" value="<?= htmlspecialchars(json_encode($result['cars'])) ?>">
+            <input type="hidden" name="pairing_result" value="<?= htmlspecialchars(json_encode(['cars' => $result['cars'], 'walk' => $result['walk'] ?? []])) ?>">
             <button type="submit" name="decide" class="btn btn-success btn-lg shadow-hover">✅ この組合せで決定</button>
         </form>
     </div>

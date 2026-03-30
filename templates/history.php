@@ -40,6 +40,28 @@
                 </ul>
             </div>
             <?php endforeach; ?>
+            
+            <?php if (!empty($latest['walk'])): ?>
+            <div class="car-card" style="border-color: #94a3b8; background: #f8fafc;">
+                <div class="car-header" style="background: #e2e8f0; color: #475569;">
+                    <h3>🚶 徒歩</h3>
+                    <span class="badge" style="background: #94a3b8;"><?= count($latest['walk']) ?>人</span>
+                </div>
+                <ul class="passenger-list">
+                    <?php foreach ($latest['walk'] as $p): ?>
+                    <li class="is-passenger">
+                        <div class="passenger-info">
+                            <strong><?= htmlspecialchars($p['name']) ?></strong>
+                            <div class="passenger-meta">
+                                <span class="family-tag float"><?= htmlspecialchars($p['family_id']) ?></span>
+                                <?= $p['gender'] === 'M' ? '<span class="gender-m">♂</span>' : '<span class="gender-f">♀</span>' ?>
+                            </div>
+                        </div>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -58,6 +80,14 @@
                                 }, $car)) ?>
                             </li>
                         <?php endforeach; ?>
+                        <?php if (!empty($history['walk'])): ?>
+                            <li style="margin-bottom: 0.5rem;">
+                                <strong>🚶 徒歩:</strong> 
+                                <?= implode('、', array_map(function($p) {
+                                    return htmlspecialchars($p['name']);
+                                }, $history['walk'])) ?>
+                            </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             <?php endforeach; ?>

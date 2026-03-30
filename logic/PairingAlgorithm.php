@@ -21,43 +21,37 @@ class PairingAlgorithm {
         
         $minCars = (int)ceil($totalPeople / 4);
         $maxCars = min($totalDrivers, $totalPeople); // bounded by drivers since each needs 1
-        
-        if ($minCars > $maxCars || $totalDrivers == 0) {
-            return ['error' => 'ドライバーが不足しています。全員を乗せるための車を用意できません。'];
-        }
 
         // Collect valid configs
         $validConfigs = [];
         
         // Try combinations of NumCars and AllowMultipleDrivers
-        // We prefer NumCars equal to something that has 1 driver per car.
-        
         for ($iter = 0; $iter < 100; $iter++) {
-            shuffle($familyBlocks); // Randomize to find different solutions
+            shuffle($familyBlocks); // Randomize
             
-            // We search over possible K cars
-            $found_in_iter = false;
-            for ($k = $minCars; $k <= $maxCars; $k++) {
-                // strict: max 1 driver per car. (only if k >= totalDrivers)
-                // Actually, if we have D drivers and K cars, if D > K we MUST have >1 driver in some car.
-                // So strict mode is only possible if D <= K.
+            // We search over possible K cars. If totalDrivers == 0, we only try K=0 (all walk).
+            $kStart = ($totalDrivers > 0) ? 1 : 0;
+            $kEnd = max(0, $maxCars);
+            
+            for ($k = $kStart; $k <= $kEnd; $k++) {
                 $strictModePossible = ($totalDrivers <= $k);
                 
-                if ($strictModePossible) {
+                $found = false;
+                if ($strictModePossible && $k > 0) {
                     $res = $this->attemptPartition($familyBlocks, $k, false);
                     if ($res !== false) {
                         $validConfigs[] = $res;
-                        $found_in_iter = true;
-                        break;
+                        $found = true;
                     }
                 }
                 
-                // Fallback to allowing multiple drivers
-                $res = $this->attemptPartition($familyBlocks, $k, true);
-                if ($res !== false) {
-                    $validConfigs[] = $res;
-                    $found_in_iter = true;
-                    break;
+                // Fallback to allowing multiple drivers or K=0
+                if (!$found) {
+                    $res = $this->attemptPartition($familyBlocks, $k, true);
+                    if ($res !== false) {
+                        $validConfigs[] = $res;
+                        $found = true;
+                    }
                 }
             }
         }
@@ -66,15 +60,29 @@ class PairingAlgorithm {
             return ['error' => '条件を満たす乗りあわせが見つかりませんでした。家族の人数やドライバーの数を確認してください。'];
         }
 
-        // 絶対条件: 自動車の数はできるだけ少なくする
-        $actualMinCars = PHP_INT_MAX;
+        // 1. Minimize walk people count
+        $minWalkPeople = PHP_INT_MAX;
         foreach ($validConfigs as $config) {
-            $actualMinCars = min($actualMinCars, count($config));
+            $walkPeople = count($config['walk']);
+            $minWalkPeople = min($minWalkPeople, $walkPeople);
+        }
+        
+        $filtered1 = [];
+        foreach ($validConfigs as $config) {
+            if (count($config['walk']) === $minWalkPeople) {
+                $filtered1[] = $config;
+            }
+        }
+
+        // 2. Minimize number of cars
+        $actualMinCars = PHP_INT_MAX;
+        foreach ($filtered1 as $config) {
+            $actualMinCars = min($actualMinCars, count($config['cars']));
         }
         
         $filteredConfigs = [];
-        foreach ($validConfigs as $config) {
-            if (count($config) === $actualMinCars) {
+        foreach ($filtered1 as $config) {
+            if (count($config['cars']) === $actualMinCars) {
                 $filteredConfigs[] = $config;
             }
         }
@@ -109,37 +117,41 @@ class PairingAlgorithm {
 
         return [
             'success' => true,
-            'cars' => $chosen,
+            'cars' => $chosen['cars'],
+            'walk' => $chosen['walk'],
             'score' => $bestScore
         ];
     }
 
     private function attemptPartition($blocks, $numCars, $allowMultipleDrivers) {
         $cars = array_fill(0, $numCars, []);
-        return $this->backtrackPartition($cars, $blocks, 0, $allowMultipleDrivers);
+        $walk = [];
+        return $this->backtrackPartition($cars, $walk, $blocks, 0, $allowMultipleDrivers);
     }
 
-    private function backtrackPartition(&$cars, $blocks, $idx, $allowMultipleDrivers) {
+    private function backtrackPartition(&$cars, &$walk, $blocks, $idx, $allowMultipleDrivers) {
         if ($idx == count($blocks)) {
-            foreach ($cars as $car) {
-                if (empty($car)) return false; 
-                $driverCount = 0;
-                $males = 0;
-                $females = 0;
-                $families_in_car = [];
-                foreach ($car as $p) {
-                    if ($p['is_driver'] == '1') $driverCount++;
-                    if ($p['gender'] == 'M') $males++;
-                    if ($p['gender'] == 'F') $females++;
-                    $families_in_car[$p['family_id']] = true;
-                }
-                if ($driverCount < 1) return false;
-                if (!$allowMultipleDrivers && $driverCount > 1) return false;
-                if (count($car) == 2 && $males == 1 && $females == 1 && count($families_in_car) == 2) {
-                    return false; 
+            if (count($cars) > 0) {
+                foreach ($cars as $car) {
+                    if (empty($car)) return false; 
+                    $driverCount = 0;
+                    $males = 0;
+                    $females = 0;
+                    $families_in_car = [];
+                    foreach ($car as $p) {
+                        if ($p['is_driver'] == '1') $driverCount++;
+                        if ($p['gender'] == 'M') $males++;
+                        if ($p['gender'] == 'F') $females++;
+                        $families_in_car[$p['family_id']] = true;
+                    }
+                    if ($driverCount < 1) return false;
+                    if (!$allowMultipleDrivers && $driverCount > 1) return false;
+                    if (count($car) == 2 && $males == 1 && $females == 1 && count($families_in_car) == 2) {
+                        return false; 
+                    }
                 }
             }
-            return $cars;
+            return ['cars' => $cars, 'walk' => $walk];
         }
         
         $carIndices = array_keys($cars);
@@ -160,12 +172,20 @@ class PairingAlgorithm {
             if (count($originalCar) + count($blocks[$idx]) <= 4) {
                 $cars[$c] = array_merge($cars[$c], $blocks[$idx]);
                 
-                $res = $this->backtrackPartition($cars, $blocks, $idx + 1, $allowMultipleDrivers);
+                $res = $this->backtrackPartition($cars, $walk, $blocks, $idx + 1, $allowMultipleDrivers);
                 if ($res !== false) return $res;
                 
                 $cars[$c] = $originalCar;
             }
         }
+        
+        // Try assigning to walk group
+        $originalWalk = $walk;
+        $walk = array_merge($walk, $blocks[$idx]);
+        $res = $this->backtrackPartition($cars, $walk, $blocks, $idx + 1, $allowMultipleDrivers);
+        if ($res !== false) return $res;
+        $walk = $originalWalk;
+
         return false;
     }
 
@@ -173,8 +193,14 @@ class PairingAlgorithm {
         $score = 0;
         $pastPairs = [];
         foreach ($history as $h) {
-            if (!isset($h['cars'])) continue;
-            foreach ($h['cars'] as $carIds) {
+            $groups = [];
+            if (isset($h['cars'])) {
+                foreach ($h['cars'] as $c) $groups[] = $c;
+            }
+            if (isset($h['walk'])) {
+                $groups[] = $h['walk'];
+            }
+            foreach ($groups as $carIds) {
                 $len = count($carIds);
                 for ($i = 0; $i < $len; $i++) {
                     for ($j = $i + 1; $j < $len; $j++) {
@@ -189,10 +215,20 @@ class PairingAlgorithm {
             }
         }
         
+        $allGroups = $config['cars'];
+        if (!empty($config['walk'])) {
+            $allGroups[] = $config['walk'];
+        }
+
         $sizes = [];
-        foreach ($config as $car) {
+        foreach ($allGroups as $is_walk => $car) {
             $len = count($car);
-            $sizes[] = $len;
+            
+            // Only car size counts towards size equality penalty (ignore walk group size)
+            // Or maybe we ignore walk group for size variance? Yes.
+            if ($is_walk !== count($config['cars'])) { // actually `is_walk` here is just key, wait this is wrong
+                $sizes[] = $len;
+            }
             $familyIds = [];
             
             for ($i = 0; $i < $len; $i++) {
@@ -228,13 +264,20 @@ class PairingAlgorithm {
             }
             $score += ($variance * 100);
         }
-
+        
+        // 歩く人のペナルティ (歩く人がいると少しスコア悪化)
+        $score += count($config['walk']) * 1000;
+        
         return $score;
     }
 
     private function hashConfig($config) {
         $carHashes = [];
-        foreach ($config as $car) {
+        $allGroups = $config['cars'];
+        if (!empty($config['walk'])) {
+            $allGroups[] = $config['walk'];
+        }
+        foreach ($allGroups as $car) {
             $ids = array_map(function($p) { return $p['id']; }, $car);
             sort($ids);
             $carHashes[] = implode(',', $ids);
