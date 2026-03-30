@@ -28,7 +28,7 @@ if ($action === 'login') {
 
 if ($action === 'logout') {
     $auth->logout();
-    header('Location: ?action=login');
+    header('Location: ?action=login&logged_out=1');
     exit;
 }
 
