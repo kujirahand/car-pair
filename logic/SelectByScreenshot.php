@@ -181,13 +181,12 @@ class SelectByScreenshot {
                 $nameLower = mb_strtolower($mem['name']);
                 $furiLower = mb_strtolower($mem['furigana']);
                 $nickLower = mb_strtolower($mem['nickname']);
-                
-                if ($nameLower === $exLower || 
-                    $furiLower === $exLower || 
-                    $nickLower === $exLower ||
-                    strpos($nameLower, $exLower) !== false || 
-                    strpos($exLower, $nameLower) !== false ||
-                    (!empty($nickLower) && strpos($exLower, $nickLower) !== false)) {
+
+                $nameMatch = $nameLower === $exLower || strpos($nameLower, $exLower) !== false || strpos($exLower, $nameLower) !== false;
+                $furiMatch = (!empty($furiLower) && ($furiLower === $exLower || strpos($furiLower, $exLower) !== false || strpos($exLower, $furiLower) !== false));
+                $nickMatch = (!empty($nickLower) && ($nickLower === $exLower || strpos($nickLower, $exLower) !== false || strpos($exLower, $nickLower) !== false));
+
+                if ($nameMatch || $furiMatch || $nickMatch) {
                     $matchedIds[] = $mem['id'];
                     // break; マッチするメンバーがいれば全員を選択する
                 }

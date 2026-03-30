@@ -166,6 +166,36 @@ if ($action === 'select_by_screenshot') {
     exit;
 }
 
+if ($action === 'select_by_textbox') {
+    $error = '';
+    $inputText = '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $inputText = trim($_POST['member_text'] ?? '');
+        if ($inputText === '') {
+            $error = '参加者名を入力してください。';
+        } else {
+            $names = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $inputText)));
+            $logic = new SelectByScreenshot();
+            $members = $csv->getAll();
+            $matchedIds = $logic->matchMembers($names, $members);
+
+            if (empty($matchedIds)) {
+                $error = '名簿と一致するメンバーが見つかりませんでした。';
+            } else {
+                $_SESSION['selected_members'] = array_merge($_SESSION['selected_members'] ?? [], $matchedIds);
+                $_SESSION['flash_message'] = count($matchedIds) . ' 人のメンバーをテキストから選択しました！';
+                header('Location: ?action=select_members');
+                exit;
+            }
+        }
+    }
+
+    $contentView = 'select_by_textbox.php';
+    require __DIR__ . '/templates/layout.php';
+    exit;
+}
+
 if ($action === 'pairing') {
     $selectedIds = isset($_SESSION['selected_members']) ? $_SESSION['selected_members'] : [];
     if (empty($selectedIds)) {
