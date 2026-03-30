@@ -107,6 +107,28 @@ ul, ol { list-style: none; }
         padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
     }
+    .page-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .page-title {
+        font-size: 1.4rem;
+    }
+    .card {
+        padding: 1.25rem;
+    }
+    .cars-grid {
+        grid-template-columns: 1fr;
+    }
+    .passenger-list li {
+        padding: 0.75rem 1rem;
+    }
+    .car-header {
+        padding: 0.75rem 1rem;
+    }
+    .bottom-actions .btn {
+        margin-bottom: 0.5rem;
+    }
 }
 
 /* Utilities */
