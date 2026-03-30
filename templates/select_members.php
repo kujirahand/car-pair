@@ -85,6 +85,15 @@
     .table-responsive td.checkbox-cell::before {
         display: none;
     }
+
+    /* Simple mobile view: Only show Name and Type */
+    .table-responsive td[data-label="ふりがな"],
+    .table-responsive td[data-label="家族ID"],
+    .table-responsive td[data-label="ニックネーム"],
+    .table-responsive td[data-label="備考"],
+    .table-responsive td[data-label="参加回数"] {
+        display: none;
+    }
 }
 </style>
 
@@ -123,7 +132,12 @@
                         <td class="text-center checkbox-cell" data-label="選択">
                             <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox" <?= in_array($m['id'], $selectedIds) ? 'checked' : '' ?>>
                         </td>
-                        <td class="name-cell" data-label="名前"><?= htmlspecialchars($m['name']) ?></td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name"><?= htmlspecialchars($m['name']) ?></span>
+                            <span class="badge-gender-<?= strtolower($m['gender']) ?>">
+                                <?= $m['gender'] === 'M' ? '男' : '女' ?>
+                            </span>
+                        </td>
                         <td class="furigana-cell" data-label="ふりがな"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
                         <td data-label="家族ID"><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
                         <td data-label="タイプ">
@@ -133,9 +147,6 @@
                                     <?= $m['is_driver'] === '1' ? '🚗 ドライバー' : '👤 乗客' ?>
                                 </span>
                             </label>
-                            <span class="badge-gender-<?= strtolower($m['gender']) ?>">
-                                <?= $m['gender'] === 'M' ? '男' : '女' ?>
-                            </span>
                         </td>
                         <td class="nickname-cell" data-label="ニックネーム"><?= htmlspecialchars($m['nickname'] ?? '') ?></td>
                         <td class="notes-cell" data-label="備考"><?= htmlspecialchars($m['notes'] ?? '') ?></td>
@@ -151,7 +162,7 @@
             <div class="selection-summary">
                 <span id="selected-count" class="badge">0</span> 人
             </div>
-            <button type="submit" class="btn btn-primary btn-lg pulse-hover">決定 ⚡</button>
+            <button type="submit" class="btn btn-primary pulse-hover">決定</button>
         </div>
     </form>
 </div>
@@ -281,8 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
             rows.sort((a, b) => {
                 let valA, valB;
                 if (currentSort === 'name') {
-                    valA = a.querySelector('.name-cell').textContent.trim();
-                    valB = b.querySelector('.name-cell').textContent.trim();
+                    valA = a.querySelector('.member-name').textContent.trim();
+                    valB = b.querySelector('.member-name').textContent.trim();
                     return valA.localeCompare(valB, 'ja') * currentDir;
                 } else if (currentSort === 'furigana') {
                     valA = a.querySelector('.furigana-cell').textContent.trim();
