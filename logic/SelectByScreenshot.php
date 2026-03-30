@@ -3,6 +3,95 @@
 class SelectByScreenshot {
     
     /**
+     * 画像を圧縮・リサイズしてBase64エンコードの文字列を返す
+     * ファイルサイズが2MB以上の場合、長辺1500px以下になるようリサイズする
+     * 
+     * @param string $tmpPath 画像ファイルパス
+     * @return string Base64エンコードされた画像データ
+     */
+    public function getCompressedImageBase64(string $tmpPath): string {
+        $mimeType = mime_content_type($tmpPath);
+        $fileSize = filesize($tmpPath);
+        $imageData = null;
+
+        // ファイルサイズが2MB以上の場合、GDでリサイズ（長辺1500px以下）
+        if ($fileSize >= 2 * 1024 * 1024) {
+            $image = null;
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $image = @imagecreatefromjpeg($tmpPath);
+                    break;
+                case 'image/png':
+                    $image = @imagecreatefrompng($tmpPath);
+                    break;
+                case 'image/gif':
+                    $image = @imagecreatefromgif($tmpPath);
+                    break;
+                case 'image/webp':
+                    $image = @imagecreatefromwebp($tmpPath);
+                    break;
+            }
+
+            if ($image) {
+                $width = imagesx($image);
+                $height = imagesy($image);
+                $maxDim = 1500;
+                
+                $newWidth = $width;
+                $newHeight = $height;
+
+                if ($width > $maxDim || $height > $maxDim) {
+                    $ratio = $width / $height;
+                    if ($ratio > 1) {
+                        $newWidth = $maxDim;
+                        $newHeight = (int)round($maxDim / $ratio);
+                    } else {
+                        $newHeight = $maxDim;
+                        $newWidth = (int)round($maxDim * $ratio);
+                    }
+                }
+
+                $newImage = imagecreatetruecolor($newWidth, $newHeight);
+                if ($mimeType === 'image/png' || $mimeType === 'image/webp' || $mimeType === 'image/gif') {
+                    imagealphablending($newImage, false);
+                    imagesavealpha($newImage, true);
+                    $transparent = imagecolorallocatealpha($newImage, 255, 255, 255, 127);
+                    imagefilledrectangle($newImage, 0, 0, $newWidth, $newHeight, $transparent);
+                }
+
+                imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                
+                ob_start();
+                switch ($mimeType) {
+                    case 'image/jpeg':
+                        imagejpeg($newImage, null, 85);
+                        break;
+                    case 'image/png':
+                        imagepng($newImage, null, 8);
+                        break;
+                    case 'image/gif':
+                        imagegif($newImage, null);
+                        break;
+                    case 'image/webp':
+                        imagewebp($newImage, null, 85);
+                        break;
+                }
+                $imageString = ob_get_clean();
+                $imageData = base64_encode($imageString);
+                
+                imagedestroy($newImage);
+                imagedestroy($image);
+            }
+        }
+
+        if ($imageData === null) {
+            $imageData = base64_encode(file_get_contents($tmpPath));
+        }
+        
+        return $imageData;
+    }
+
+    /**
      * 画像をOpenAI APIに送信し、参加者の名前リスト（文字列配列）として抽出する
      * 
      * @param string $tmpPath アップロードされた画像の一時パス
@@ -21,8 +110,8 @@ class SelectByScreenshot {
             throw new Exception('OpenAI APIキーが設定されていません。');
         }
         
-        $imageData = base64_encode(file_get_contents($tmpPath));
         $mimeType = mime_content_type($tmpPath);
+        $imageData = $this->getCompressedImageBase64($tmpPath);
         
         $url = 'https://api.openai.com/v1/chat/completions';
         $data = [
