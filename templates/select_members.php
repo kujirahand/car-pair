@@ -1,6 +1,7 @@
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
     <h1 class="page-title" style="margin-bottom: 0;">👥 今回の参加者を選択</h1>
     <div style="display: flex; gap: 10px;">
+        <a href="?action=select_by_textbox" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📝 テキストから追加</a>
         <a href="?action=select_by_screenshot" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📸 スクショから選択</a>
         <button type="button" id="clear-all-btn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); background: #fff;">🗑️ 全部クリア</button>
     </div>
