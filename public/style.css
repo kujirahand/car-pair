@@ -64,6 +64,15 @@ ul, ol { list-style: none; }
     font-size: 1.25rem;
     color: var(--primary);
     letter-spacing: -0.025em;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-workspace-name {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: -0.2rem;
 }
 
 .nav-links {

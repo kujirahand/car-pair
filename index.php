@@ -6,6 +6,7 @@ require_once __DIR__ . '/logic/CsvManager.php';
 require_once __DIR__ . '/logic/HistoryManager.php';
 require_once __DIR__ . '/logic/PairingAlgorithm.php';
 require_once __DIR__ . '/logic/SelectByScreenshot.php';
+require_once __DIR__ . '/logic/WorkspaceManager.php';
 
 $auth = new Auth();
 $action = isset($_GET['action']) ? $_GET['action'] : 'select_members';
@@ -38,15 +39,60 @@ if (!$auth->isLoggedIn()) {
     exit;
 }
 
-$csv = new CsvManager();
+// Initialize Workspace
+$workspaceManager = new WorkspaceManager();
+$currentWorkspaceId = $_SESSION['workspace_id'] ?? 'default';
+$workspacePaths = $workspaceManager->getWorkspacePaths($currentWorkspaceId);
+$currentWorkspaceName = $workspaceManager->getWorkspaceName($currentWorkspaceId);
+
+$csv = new CsvManager($workspacePaths['list']);
 
 if ($action === 'export_csv') {
-    $file = __DIR__ . '/data/list.csv';
+    $file = $workspacePaths['list'];
     if (file_exists($file)) {
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="list.csv"');
         readfile($file);
     }
+    exit;
+}
+
+if ($action === 'switch_workspace') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['select'])) {
+            $_SESSION['workspace_id'] = $_POST['id'];
+            $_SESSION['flash_message'] = "ワークスペースを「" . $workspaceManager->getWorkspaceName($_POST['id']) . "」に切り替えました。";
+            header('Location: ?action=select_members');
+            exit;
+        } elseif (isset($_POST['add'])) {
+            $name = trim($_POST['name'] ?? '');
+            if ($name !== '') {
+                $workspaceManager->addWorkspace($name);
+                $_SESSION['flash_message'] = "ワークスペース「{$name}」を追加しました。";
+            }
+        } elseif (isset($_POST['edit'])) {
+            $id = $_POST['id'];
+            $name = trim($_POST['name'] ?? '');
+            if ($id !== 'default' && $name !== '') {
+                $workspaceManager->updateWorkspace($id, $name);
+                $_SESSION['flash_message'] = "ワークスペース名を変更しました。";
+            }
+        } elseif (isset($_POST['delete'])) {
+            $id = $_POST['id'];
+            if ($id !== 'default') {
+                $workspaceManager->deleteWorkspace($id);
+                if ($currentWorkspaceId === $id) {
+                    $_SESSION['workspace_id'] = 'default';
+                }
+                $_SESSION['flash_message'] = "ワークスペースを削除しました。";
+            }
+        }
+        header('Location: ?action=switch_workspace');
+        exit;
+    }
+    $workspaces = $workspaceManager->getWorkspaces();
+    $contentView = 'switch_workspace.php';
+    require __DIR__ . '/templates/layout.php';
     exit;
 }
 
@@ -210,7 +256,7 @@ if ($action === 'pairing') {
             $m['is_driver'] = $driverOverrides[$m['id']] ? '1' : '0';
         }
     }
-    $historyManager = new HistoryManager();
+    $historyManager = new HistoryManager($workspacePaths['history']);
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['decide'])) {
         // Decide was clicked
@@ -236,7 +282,7 @@ if ($action === 'pairing') {
 }
 
 if ($action === 'history') {
-    $historyManager = new HistoryManager();
+    $historyManager = new HistoryManager($workspacePaths['history']);
     $allHistory = $historyManager->getHistory();
     // sort history by descending (latest first). The file appends to the end, so reverse it.
     $reversedHistory = array_reverse($allHistory);

@@ -14,11 +14,15 @@
     <div class="app-container">
         <?php if ($auth->isLoggedIn()): ?>
         <nav class="navbar">
-            <div class="nav-brand">🚗 Car Pairing</div>
+            <div class="nav-brand">
+                🚗 Car Pairing
+                <span class="nav-workspace-name"><?= htmlspecialchars($currentWorkspaceName) ?></span>
+            </div>
             <ul class="nav-links">
                 <li><a href="?action=select_members" class="<?= $action === 'select_members' ? 'active' : '' ?>">配車</a></li>
                 <li><a href="?action=history" class="<?= $action === 'history' ? 'active' : '' ?>">履歴</a></li>
                 <li><a href="?action=edit_list" class="<?= $action === 'edit_list' ? 'active' : '' ?>">名簿</a></li>
+                <li><a href="?action=switch_workspace" class="<?= $action === 'switch_workspace' ? 'active' : '' ?>">切替</a></li>
                 <li><a href="?action=logout" class="logout-btn">ログアウト</a></li>
             </ul>
         </nav>
