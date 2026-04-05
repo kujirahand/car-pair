@@ -6,7 +6,7 @@ class CsvManager {
 
     public function __construct($csvFile = null) {
         if ($csvFile === null) {
-            $csvFile = __DIR__ . '/../data/list.csv';
+            $csvFile = __DIR__ . '/../data/default/list.csv';
         }
         $this->csvFile = $csvFile;
     }

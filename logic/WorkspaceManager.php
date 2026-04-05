@@ -96,21 +96,17 @@ class WorkspaceManager {
     }
 
     public function getWorkspacePaths($id) {
-        if ($id === 'default' || empty($id)) {
-            return [
-                'list' => $this->dataDir . '/list.csv',
-                'history' => $this->dataDir . '/history.json'
-            ];
-        } else {
-            $dir = $this->dataDir . '/' . $id;
-            if (!is_dir($dir)) {
-                mkdir($dir, 0777, true);
-            }
-            return [
-                'list' => $dir . '/list.csv',
-                'history' => $dir . '/history.json'
-            ];
+        if (empty($id)) {
+            $id = 'default';
         }
+        $dir = $this->dataDir . '/' . $id;
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        return [
+            'list' => $dir . '/list.csv',
+            'history' => $dir . '/history.json'
+        ];
     }
 
     public function getWorkspaceName($id) {
