@@ -27,9 +27,17 @@ class CsvManager {
                 $isFirst = false;
                 continue;
             }
-            if (count($row) === count($this->headers)) {
-                $data[] = array_combine($this->headers, $row);
+            $headerCount = count($this->headers);
+            $rowCount = count($row);
+            
+            // Allow truncated columns (common in Excel exports/manual edits)
+            if ($rowCount < $headerCount) {
+                $row = array_pad($row, $headerCount, '');
+            } elseif ($rowCount > $headerCount) {
+                $row = array_slice($row, 0, $headerCount);
             }
+            
+            $data[] = array_combine($this->headers, $row);
         }
         fclose($file);
         return $data;

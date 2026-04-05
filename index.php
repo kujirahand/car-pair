@@ -1,5 +1,8 @@
 <?php
 session_start();
+// Fix fgetcsv multibyte handling and line endings on macOS
+setlocale(LC_ALL, 'ja_JP.UTF-8');
+ini_set('auto_detect_line_endings', true);
 
 require_once __DIR__ . '/logic/Auth.php';
 require_once __DIR__ . '/logic/CsvManager.php';
