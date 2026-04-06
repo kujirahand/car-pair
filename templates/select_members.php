@@ -104,8 +104,9 @@
     <?php endif; ?>
 
     <form action="?action=select_members" method="post" id="select-members-form">
-        <div class="mb-3">
-            <input type="search" id="member-search" class="form-control" placeholder="名前、ふりがな、家族IDで検索..." autocomplete="off">
+        <div class="mb-3" style="display: flex; gap: 8px; align-items: center;">
+            <input type="search" id="member-search" class="form-control" placeholder="名前、かなの一部から検索" style="flex: 1; margin-bottom: 0;">
+            <button type="button" onclick="clearSearch()" style="flex-shrink: 0; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; color: var(--text-muted); font-size: 1rem; cursor: pointer; line-height: 1; transition: background 0.15s, color 0.15s;" onmouseover="this.style.background='#f3f4f6';this.style.color='var(--text)'" onmouseout="this.style.background='#fff';this.style.color='var(--text-muted)'">×</button>
         </div>
         
         <div class="table-responsive">
@@ -163,7 +164,7 @@
             <div class="selection-summary">
                 <span id="selected-count" class="badge">0</span> 人
             </div>
-            <button type="submit" class="btn btn-primary pulse-hover">決定</button>
+            <button type="submit" class="btn btn-primary pulse-hover">選択完了</button>
         </div>
     </form>
 </div>
@@ -173,6 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkAll = document.getElementById('check-all');
     const checkboxes = document.querySelectorAll('.member-checkbox');
     const countSpan = document.getElementById('selected-count');
+    const search = document.getElementById('member-search');
+
+    const clearSearch = () => {
+        search.value = '';
+    };
 
     const updateCount = () => {
         const count = Array.from(checkboxes).filter(cb => {
