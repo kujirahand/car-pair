@@ -120,7 +120,7 @@
                         <th class="sortable" data-sort="furigana" style="cursor: pointer; user-select: none;" title="クリックでソート">ふりがな <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th>家族ID</th>
                         <th>タイプ</th>
-                        <th>ニックネーム</th>
+                        <th class="sortable" data-sort="nickname" style="cursor: pointer; user-select: none;" title="クリックでソート">ニックネーム <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th>備考</th>
                         <th class="sortable" data-sort="count" style="cursor: pointer; user-select: none;" title="クリックでソート">参加回数 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↓</span></th>
                     </tr>
@@ -305,6 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (currentSort === 'furigana') {
                     valA = a.querySelector('.furigana-cell').textContent.trim();
                     valB = b.querySelector('.furigana-cell').textContent.trim();
+                    return valA.localeCompare(valB, 'ja') * currentDir;
+                } else if (currentSort === 'nickname') {
+                    valA = a.querySelector('.nickname-cell').textContent.trim();
+                    valB = b.querySelector('.nickname-cell').textContent.trim();
                     return valA.localeCompare(valB, 'ja') * currentDir;
                 } else if (currentSort === 'count') {
                     valA = parseInt(a.querySelector('.count-val strong').textContent, 10) || 0;
