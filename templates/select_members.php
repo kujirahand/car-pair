@@ -112,9 +112,16 @@ $pageMenuItems = [
     outline: 2px solid var(--primary-color, #2563eb);
     outline-offset: 2px;
 }
-/* ふりがなは検索専用(表示しない) */
-.table td.furigana-cell {
+/* 家族IDは表示しない(検索用にDOMには残す) */
+.table td.family-cell {
     display: none !important;
+}
+/* ふりがなはPCだけ表示(スマホは検索専用で表示しない) */
+@media (max-width: 768px) {
+    .table th.furigana-head,
+    .table td.furigana-cell {
+        display: none !important;
+    }
 }
 .table tbody tr.empty-row td {
     color: var(--text-muted);
@@ -257,10 +264,10 @@ $pageMenuItems = [
                             <input type="checkbox" id="check-all" title="すべて選択">
                         </th>
                         <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;" title="クリックでソート">名前 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
-                        <th>家族ID</th>
+                        <th class="sortable furigana-head" data-sort="furigana" style="cursor: pointer; user-select: none;" title="クリックでソート">ふりがな <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th>タイプ</th>
                         <th class="sortable" data-sort="nickname" style="cursor: pointer; user-select: none;" title="クリックでソート">ニックネーム <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
-                        <th>備考</th>
+                        <th class="sortable" data-sort="notes" style="cursor: pointer; user-select: none;" title="クリックでソート">備考 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th class="sortable" data-sort="count" style="cursor: pointer; user-select: none;" title="クリックでソート">参加回数 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↓</span></th>
                     </tr>
                 </thead>
@@ -351,6 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return text(a, '.member-name').localeCompare(text(b, '.member-name'), 'ja') * currentDir;
         } else if (currentSort === 'nickname') {
             return text(a, '.nickname-cell').localeCompare(text(b, '.nickname-cell'), 'ja') * currentDir;
+        } else if (currentSort === 'furigana') {
+            return text(a, '.furigana-cell').localeCompare(text(b, '.furigana-cell'), 'ja') * currentDir;
+        } else if (currentSort === 'notes') {
+            return text(a, '.notes-cell').localeCompare(text(b, '.notes-cell'), 'ja') * currentDir;
         } else if (currentSort === 'count') {
             const valA = parseInt(text(a, '.count-val strong'), 10) || 0;
             const valB = parseInt(text(b, '.count-val strong'), 10) || 0;

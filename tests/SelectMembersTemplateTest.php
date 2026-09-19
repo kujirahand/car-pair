@@ -92,13 +92,17 @@ class SelectMembersTemplateTest {
         $this->assert(strpos($html, '>男<') === false && strpos($html, '>女<') === false, '男女の文字表記は省略すること');
     }
 
-    public function testFuriganaIsSearchOnly() {
+    public function testFuriganaColumnSortable() {
         $members = $this->sampleMembers();
         $members[0]['furigana'] = 'こうさん';
         $html = $this->render($members, []);
-        $this->assert(strpos($html, 'data-sort="furigana"') === false, 'ふりがな列の見出しは表示しないこと');
-        $this->assert(strpos($html, 'class="furigana-cell"') !== false && strpos($html, 'こうさん') !== false, '検索用にふりがなはDOMに残すこと');
-        $this->assert(strpos($html, '.table td.furigana-cell') !== false, 'ふりがなを非表示にするスタイルがありません');
+        $this->assert(strpos($html, 'data-sort="furigana"') !== false, 'ふりがな列にソート用の見出しが必要です');
+        $this->assert(strpos($html, 'data-sort="notes"') !== false, '備考列にソート用の見出しが必要です');
+        $this->assert(strpos($html, '>家族ID</th>') === false, '家族ID列の見出しは表示しないこと');
+        $this->assert(strpos($html, '.table td.family-cell') !== false && strpos($html, 'class="family-cell"') !== false, '家族IDは検索用にDOMへ残し、非表示にすること');
+        $this->assert(strpos($html, 'class="furigana-cell"') !== false && strpos($html, 'こうさん') !== false, 'ふりがながDOMにありません(検索にも使う)');
+        $this->assert(strpos($html, '.table td.furigana-cell') !== false && strpos($html, 'max-width: 768px') !== false, 'スマホでふりがなを隠すスタイルがありません');
+        $this->assert(strpos($html, "currentSort === 'furigana'") !== false && strpos($html, "currentSort === 'notes'") !== false, 'ふりがな・備考のソート処理がありません');
     }
 
     public function testScreenshotButtonRemoved() {
