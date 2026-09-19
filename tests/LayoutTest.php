@@ -35,7 +35,7 @@ class LayoutTest {
         $this->assert($toggle < $menu, 'ボタンの後にメニューがあるべきです');
         $this->assert(preg_match('/id="nav-menu" hidden/', $html) === 1, 'メニューは初期状態で閉じているべきです');
         foreach (['action=select_members', 'action=history', 'action=edit_list', 'action=switch_workspace', 'action=logout'] as $link) {
-            $pos = strpos($html, $link);
+            $pos = strpos($html, $link, $menu);
             $this->assert($pos !== false && $pos > $menu, "$link がメニュー内にありません");
         }
     }
@@ -54,5 +54,10 @@ class LayoutTest {
     public function testNoMenuWhenLoggedOut() {
         $html = $this->renderLayout('login', false);
         $this->assert(strpos($html, 'id="menu-toggle"') === false, 'ログアウト時はメニューを出さないこと');
+    }
+
+    public function testBrandLinksToSelectMembers() {
+        $html = $this->renderLayout('history');
+        $this->assert(preg_match('/<a href="\?action=select_members" class="nav-brand">\s*🚗 Car Pairing/', $html) === 1, 'Car Pairing が参加者選択画面へのリンクになっていません');
     }
 }

@@ -37,6 +37,15 @@ class SelectMembersTemplateTest {
         $this->assert(strpos($html, 'name="selected_ids[]" value="a"') !== false && preg_match('/value="a" class="member-checkbox" checked/', $html) === 1, '選択済みのチェックが維持されていません');
     }
 
+    public function testAddFilteredButton() {
+        $html = $this->render($this->sampleMembers(), []);
+        $this->assert(strpos($html, 'id="add-filtered-btn"') !== false, '絞り込み結果を追加するボタンがありません');
+        $this->assert(strpos($html, 'id="add-filtered-btn"') > strpos($html, 'id="candidate-heading-count"'), 'ボタンは[選択候補N人]の右にあるべきです');
+        $this->assert(strpos($html, 'id="add-filtered-btn"') < strpos($html, 'id="candidate-empty"'), 'ボタンは選択候補の見出し行にあるべきです');
+        $this->assert(strpos($html, 'id="add-filtered-count"') !== false && strpos($html, '人を追加</button>') !== false, 'ボタンの文言が「以下のN人を追加」になっていません');
+        $this->assert(preg_match('/id="add-filtered-btn"[^>]*name=/', $html) === 0, 'ボタンの値がフォーム送信されてはいけません');
+    }
+
     public function testEmptyRosterMessage() {
         $html = $this->render([], []);
         $this->assert(strpos($html, '名簿がありません') !== false, '名簿が空のときのメッセージがありません');

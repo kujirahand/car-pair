@@ -249,6 +249,30 @@ if ($action === 'pairing') {
     exit;
 }
 
+if ($action === 'reselect') {
+    // 履歴の参加者・ドライバー指定をそのまま選択状態にして、選択画面へ戻る
+    $historyManager = new HistoryManager($workspacePaths['history']);
+    $record = $_SERVER['REQUEST_METHOD'] === 'POST'
+        ? $historyManager->findByDate($_POST['history_date'] ?? '')
+        : null;
+    if ($record === null) {
+        header('Location: ?action=history');
+        exit;
+    }
+    $selection = HistoryManager::extractSelection($record);
+    // 名簿から削除された人は除く
+    $ids = array_column($csv->getByIds($selection['ids']), 'id');
+    if (empty($ids)) {
+        $_SESSION['flash_message'] = '名簿に該当するメンバーがいないため、選択できませんでした。';
+        header('Location: ?action=history');
+        exit;
+    }
+    $_SESSION['selected_members'] = $ids;
+    $_SESSION['driver_overrides'] = array_intersect_key($selection['drivers'], array_flip($ids));
+    header('Location: ?action=select_members');
+    exit;
+}
+
 if ($action === 'history') {
     $historyManager = new HistoryManager($workspacePaths['history']);
     $allHistory = $historyManager->getHistory();

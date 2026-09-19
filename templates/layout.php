@@ -24,10 +24,10 @@ $contentHtml = ob_get_clean();
     <div class="app-container">
         <?php if ($auth->isLoggedIn()): ?>
         <nav class="navbar">
-            <div class="nav-brand">
+            <a href="?action=select_members" class="nav-brand">
                 🚗 Car Pairing
                 <span class="nav-workspace-name"><?= htmlspecialchars($currentWorkspaceName) ?></span>
-            </div>
+            </a>
             <button type="button" class="menu-toggle" id="menu-toggle" aria-label="メニュー" aria-expanded="false" aria-controls="nav-menu">☰</button>
             <ul class="nav-links" id="nav-menu" hidden>
                 <?php foreach ($pageMenuItems as $item): ?>

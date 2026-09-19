@@ -299,13 +299,29 @@ ul, ol { list-style: none; }
 .passenger-list li.is-driver { background-color: #fafffb; border-left: 4px solid #10b981; }
 .passenger-info { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
 .passenger-info strong { font-size: 1rem; }
-.passenger-meta { display: flex; gap: 0.5rem; font-size: 0.85rem; align-items: center;}
 .driver-icon { font-size: 1.2rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+
+/* 乗りあわせ候補の操作ボタン: PCではボタン間を広めに空ける(スマホは末尾のメディアクエリで詰める) */
+.bottom-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+}
+.bottom-actions form { margin: 0; }
 
 .pulse-hover:hover { animation: pulse 1s infinite; }
 @keyframes pulse {
     0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
     70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+}
+
+/* 履歴: 「このメンバーで再び選ぶ」ボタン(カード右下) */
+.reselect-form {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0.75rem 0 0;
 }
 
 /* Footer Styling */
@@ -411,10 +427,7 @@ ul, ol { list-style: none; }
         font-size: 0.85rem;
         line-height: 1.4;
     }
-    /* 操作ボタンは下部にまとめる: 決定を1段目、他を2段目に */
-    .header-actions {
-        display: none;
-    }
+    /* 操作ボタンは下部に固定: 決定を1段目、他を2段目に */
     .bottom-actions {
         position: sticky;
         bottom: 0;

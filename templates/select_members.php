@@ -35,6 +35,26 @@ $pageMenuItems = [
     padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--border);
 }
+.candidate-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.add-filtered-btn {
+    flex-shrink: 0;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--primary-color, #2563eb);
+    border-radius: var(--radius-sm);
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.add-filtered-btn:hover {
+    opacity: 0.85;
+}
 #selected-body tr.section-row td {
     background: #dbeafe;
     color: #1e40af;
@@ -255,7 +275,12 @@ $pageMenuItems = [
                     <tr class="empty-row" id="selected-empty"><td colspan="7">まだ選ばれていません。下の候補から選んでください。</td></tr>
                 </tbody>
                 <tbody id="candidate-body">
-                    <tr class="section-row"><td colspan="7">➕ 選択候補 <span id="candidate-heading-count">0</span> 人</td></tr>
+                    <tr class="section-row"><td colspan="7">
+                        <div class="candidate-heading">
+                            <span>➕ 選択候補 <span id="candidate-heading-count">0</span> 人</span>
+                            <button type="button" id="add-filtered-btn" class="add-filtered-btn" style="display: none;">以下の<span id="add-filtered-count">0</span>人を追加</button>
+                        </div>
+                    </td></tr>
                     <tr class="empty-row" id="candidate-empty" style="display: none;"><td colspan="7"><?= empty($members) ? '名簿がありません。「名簿編集」から登録してください。' : '選択候補はありません。' ?></td></tr>
                     <?php foreach ($members as $m): ?>
                     <tr class="member-row">
@@ -314,6 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const candidateEmpty = document.getElementById('candidate-empty');
     const selectedHeading = document.getElementById('selected-heading-count');
     const candidateHeading = document.getElementById('candidate-heading-count');
+    const addFilteredBtn = document.getElementById('add-filtered-btn');
+    const addFilteredCount = document.getElementById('add-filtered-count');
 
     let currentSort = 'count';
     let currentDir = -1; // -1: 降順, 1: 昇順
@@ -370,11 +397,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // 検索フィルター(選択中の人は常に表示し、候補だけを絞り込む)
     const applyFilter = () => {
         const query = search.value.trim().toLowerCase();
+        let hitCount = 0;
         candidateBody.querySelectorAll('tr.member-row').forEach(row => {
             const fields = ['.name-cell', '.furigana-cell', '.family-tag', '.nickname-cell', '.notes-cell'];
             const hit = fields.some(sel => row.querySelector(sel).textContent.toLowerCase().includes(query));
             row.style.display = hit ? '' : 'none';
+            if (hit) hitCount++;
         });
+        // 絞り込み中だけ、表示されている候補をまとめて追加するボタンを出す
+        addFilteredCount.textContent = hitCount;
+        addFilteredBtn.style.display = query !== '' && hitCount > 0 ? '' : 'none';
     };
 
     const refresh = () => {
@@ -392,6 +424,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     toggleSelected.addEventListener('change', applySelectedVisibility);
     applySelectedVisibility();
+
+    // 絞り込み結果として表示されている候補をすべて選択に追加する
+    addFilteredBtn.addEventListener('click', () => {
+        candidateBody.querySelectorAll('tr.member-row').forEach(row => {
+            if (row.style.display !== 'none') {
+                row.querySelector('.member-checkbox').checked = true;
+            }
+        });
+        refresh();
+    });
 
     window.clearSearch = () => {
         search.value = '';

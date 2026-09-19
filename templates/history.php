@@ -63,6 +63,10 @@
             </div>
             <?php endif; ?>
         </div>
+        <form action="?action=reselect" method="post" class="reselect-form">
+            <input type="hidden" name="history_date" value="<?= htmlspecialchars($latest['date']) ?>">
+            <button type="submit" class="btn btn-outline btn-sm">🔁 このメンバーで再び選ぶ</button>
+        </form>
     </div>
 
     <?php if (!empty($pastHistories)): ?>
@@ -89,6 +93,10 @@
                             </li>
                         <?php endif; ?>
                     </ul>
+                    <form action="?action=reselect" method="post" class="reselect-form">
+                        <input type="hidden" name="history_date" value="<?= htmlspecialchars($history['date']) ?>">
+                        <button type="submit" class="btn btn-outline btn-sm">🔁 このメンバーで再び選ぶ</button>
+                    </form>
                 </div>
             <?php endforeach; ?>
         </div>
