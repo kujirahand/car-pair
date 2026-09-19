@@ -7,7 +7,7 @@ require_once __DIR__ . '/logic/Auth.php';
 require_once __DIR__ . '/logic/CsvManager.php';
 require_once __DIR__ . '/logic/HistoryManager.php';
 require_once __DIR__ . '/logic/PairingAlgorithm.php';
-require_once __DIR__ . '/logic/SelectByScreenshot.php';
+require_once __DIR__ . '/logic/MemberMatcher.php';
 require_once __DIR__ . '/logic/WorkspaceManager.php';
 
 $auth = new Auth();
@@ -151,6 +151,7 @@ if ($action === 'select_members') {
                 $driverMap[$id] = isset($isDriverOverrides[$id]);
             }
             $_SESSION['driver_overrides'] = $driverMap;
+            $_SESSION['pairing_mode'] = PairingAlgorithm::normalizeMode($_POST['pairing_mode'] ?? null);
             header('Location: ?action=pairing');
             exit;
         } else {
@@ -170,47 +171,9 @@ if ($action === 'select_members') {
         return (int)$b['participation_count'] <=> (int)$a['participation_count'];
     });
     $selectedIds = $_SESSION['selected_members'] ?? [];
+    $pairingModes = PairingAlgorithm::getModes();
+    $pairingMode = PairingAlgorithm::normalizeMode($_SESSION['pairing_mode'] ?? null);
     $contentView = 'select_members.php';
-    require __DIR__ . '/templates/layout.php';
-    exit;
-}
-
-if ($action === 'select_by_screenshot') {
-    $error = '';
-    $step = 'upload';
-    $extractedText = '';
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $step = $_POST['step'] ?? 'upload';
-        $logic = new SelectByScreenshot();
-        
-        if ($step === 'confirm') {
-            $text = trim($_POST['extracted_text'] ?? '');
-            $extractedNames = array_filter(array_map('trim', explode("\n", $text)));
-            
-            $members = $csv->getAll();
-            $matchedIds = $logic->matchMembers($extractedNames, $members);
-            
-            $_SESSION['selected_members'] = $matchedIds;
-            $_SESSION['flash_message'] = count($matchedIds) . ' 人のメンバーをリストから抽出・選択しました！';
-            header('Location: ?action=select_members');
-            exit;
-        } else {
-            if (!isset($_FILES['screenshot']) || $_FILES['screenshot']['error'] !== UPLOAD_ERR_OK) {
-                $error = '画像のアップロードに失敗しました。';
-            } else {
-                try {
-                    $extractedNames = $logic->extractNamesFromImage($_FILES['screenshot']['tmp_name']);
-                    $extractedText = implode("\n", $extractedNames);
-                    $step = 'confirm';
-                } catch (Exception $e) {
-                    $error = $e->getMessage();
-                }
-            }
-        }
-    }
-    
-    $contentView = 'select_by_screenshot.php';
     require __DIR__ . '/templates/layout.php';
     exit;
 }
@@ -225,7 +188,7 @@ if ($action === 'select_by_textbox') {
             $error = '参加者名を入力してください。';
         } else {
             $names = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $inputText)));
-            $logic = new SelectByScreenshot();
+            $logic = new MemberMatcher();
             $members = $csv->getAll();
             $matchedIds = $logic->matchMembers($names, $members);
 
@@ -277,7 +240,9 @@ if ($action === 'pairing') {
     // Generate pairing candidates
     $startTime = microtime(true);
     $pairingAlg = new PairingAlgorithm();
-    $result = $pairingAlg->generate($members, $historyManager->getHistory());
+    $pairingMode = PairingAlgorithm::normalizeMode($_SESSION['pairing_mode'] ?? null);
+    $pairingModeName = PairingAlgorithm::getModes()[$pairingMode];
+    $result = $pairingAlg->generate($members, $historyManager->getHistory(), $pairingMode);
     $executionTime = round(($endTime = microtime(true)) - $startTime, 4) * 1000; // in milliseconds
     $contentView = 'pairing.php';
     require __DIR__ . '/templates/layout.php';

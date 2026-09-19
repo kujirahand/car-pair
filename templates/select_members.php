@@ -2,7 +2,6 @@
     <h1 class="page-title" style="margin-bottom: 0;">👥 今回の参加者を選択</h1>
     <div style="display: flex; gap: 10px;">
         <a href="?action=select_by_textbox" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📝 テキストから追加</a>
-        <a href="?action=select_by_screenshot" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📸 スクショから選択</a>
         <button type="button" id="clear-all-btn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); background: #fff;">🗑️ 全部クリア</button>
     </div>
 </div>
@@ -12,6 +11,35 @@
 }
 .table tbody tr.selected-row td {
     border-bottom-color: #bfdbfe;
+}
+
+.mode-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.mode-select select {
+    width: auto;
+    margin-bottom: 0;
+}
+
+.table tbody tr.section-row td {
+    background: #f1f5f9;
+    font-weight: 700;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+#selected-body tr.section-row td {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.table tbody tr.empty-row td {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 1rem;
 }
 
 /* Mobile responsive table */
@@ -87,6 +115,23 @@
         display: none;
     }
 
+    .table-responsive tr.section-row,
+    .table-responsive tr.empty-row {
+        padding: 0;
+        margin-bottom: 0.5rem;
+    }
+    .table-responsive tr.section-row td,
+    .table-responsive tr.empty-row td {
+        padding: 0.6rem 1rem;
+        display: block;
+        text-align: left;
+        min-height: 0;
+    }
+    .table-responsive tr.section-row td::before,
+    .table-responsive tr.empty-row td::before {
+        display: none;
+    }
+
     /* Simple mobile view: Only show Name and Type */
     .table-responsive td[data-label="ふりがな"],
     .table-responsive td[data-label="家族ID"],
@@ -125,12 +170,15 @@
                         <th class="sortable" data-sort="count" style="cursor: pointer; user-select: none;" title="クリックでソート">参加回数 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↓</span></th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php if (empty($members)): ?>
-                    <tr><td colspan="8" class="text-center text-muted py-5">名簿がありません。「名簿編集」から登録してください。</td></tr>
-                    <?php else: ?>
+                <tbody id="selected-body">
+                    <tr class="section-row"><td colspan="8">✅ 選択中 <span id="selected-heading-count">0</span> 人</td></tr>
+                    <tr class="empty-row" id="selected-empty"><td colspan="8">まだ選ばれていません。下の候補から選んでください。</td></tr>
+                </tbody>
+                <tbody id="candidate-body">
+                    <tr class="section-row"><td colspan="8">➕ 選択候補 <span id="candidate-heading-count">0</span> 人</td></tr>
+                    <tr class="empty-row" id="candidate-empty" style="display: none;"><td colspan="8"><?= empty($members) ? '名簿がありません。「名簿編集」から登録してください。' : '選択候補はありません。' ?></td></tr>
                     <?php foreach ($members as $m): ?>
-                    <tr>
+                    <tr class="member-row">
                         <td class="text-center checkbox-cell" data-label="選択">
                             <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox" <?= in_array($m['id'], $selectedIds) ? 'checked' : '' ?>>
                         </td>
@@ -155,7 +203,6 @@
                         <td class="count-val" data-label="参加回数"><strong><?= htmlspecialchars($m['participation_count']) ?></strong> 回</td>
                     </tr>
                     <?php endforeach; ?>
-                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -164,6 +211,14 @@
             <div class="selection-summary">
                 <span id="selected-count" class="badge">0</span> 人
             </div>
+            <label class="mode-select" for="pairing-mode">
+                <span>組み方</span>
+                <select name="pairing_mode" id="pairing-mode" class="form-control">
+                    <?php foreach ($pairingModes as $modeId => $modeName): ?>
+                    <option value="<?= htmlspecialchars($modeId) ?>" <?= $modeId === $pairingMode ? 'selected' : '' ?>><?= htmlspecialchars($modeName) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
             <button type="submit" class="btn btn-primary pulse-hover">選択完了</button>
         </div>
     </form>
@@ -175,31 +230,94 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkboxes = document.querySelectorAll('.member-checkbox');
     const countSpan = document.getElementById('selected-count');
     const search = document.getElementById('member-search');
+    const selectedBody = document.getElementById('selected-body');
+    const candidateBody = document.getElementById('candidate-body');
+    const selectedEmpty = document.getElementById('selected-empty');
+    const candidateEmpty = document.getElementById('candidate-empty');
+    const selectedHeading = document.getElementById('selected-heading-count');
+    const candidateHeading = document.getElementById('candidate-heading-count');
 
-    const clearSearch = () => {
-        search.value = '';
+    let currentSort = 'count';
+    let currentDir = -1; // -1: 降順, 1: 昇順
+
+    const text = (row, sel) => row.querySelector(sel).textContent.trim();
+    const compareRows = (a, b) => {
+        if (currentSort === 'name') {
+            return text(a, '.member-name').localeCompare(text(b, '.member-name'), 'ja') * currentDir;
+        } else if (currentSort === 'furigana') {
+            return text(a, '.furigana-cell').localeCompare(text(b, '.furigana-cell'), 'ja') * currentDir;
+        } else if (currentSort === 'nickname') {
+            return text(a, '.nickname-cell').localeCompare(text(b, '.nickname-cell'), 'ja') * currentDir;
+        } else if (currentSort === 'count') {
+            const valA = parseInt(text(a, '.count-val strong'), 10) || 0;
+            const valB = parseInt(text(b, '.count-val strong'), 10) || 0;
+            if (valA === valB) {
+                return text(a, '.name-cell').localeCompare(text(b, '.name-cell'), 'ja');
+            }
+            return (valA - valB) * currentDir;
+        }
+        return 0;
+    };
+
+    const sortBody = (body) => {
+        const rows = Array.from(body.querySelectorAll('tr.member-row'));
+        rows.sort(compareRows);
+        rows.forEach(row => body.appendChild(row));
+    };
+
+    // チェック状態に応じて「選択中」「選択候補」のどちらかに行を振り分ける
+    const placeRows = () => {
+        checkboxes.forEach(cb => {
+            const tr = cb.closest('tr');
+            const target = cb.checked ? selectedBody : candidateBody;
+            tr.classList.toggle('selected-row', cb.checked);
+            if (tr.parentNode !== target) {
+                target.appendChild(tr);
+            }
+        });
+        sortBody(selectedBody);
+        sortBody(candidateBody);
     };
 
     const updateCount = () => {
-        const count = Array.from(checkboxes).filter(cb => {
-            const tr = cb.closest('tr');
-            if (cb.checked) {
-                tr.classList.add('selected-row');
-            } else {
-                tr.classList.remove('selected-row');
-            }
-            return cb.checked;
-        }).length;
+        const count = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const candidates = checkboxes.length - count;
         countSpan.textContent = count;
         countSpan.classList.toggle('active-count', count > 0);
+        selectedHeading.textContent = count;
+        candidateHeading.textContent = candidates;
+        selectedEmpty.style.display = count === 0 ? '' : 'none';
+        candidateEmpty.style.display = candidates === 0 ? '' : 'none';
+        if (checkAll) checkAll.checked = checkboxes.length > 0 && count === checkboxes.length;
     };
 
-    updateCount(); // Initialize state on load
+    // 検索フィルター(選択中の人は常に表示し、候補だけを絞り込む)
+    const applyFilter = () => {
+        const query = search.value.trim().toLowerCase();
+        candidateBody.querySelectorAll('tr.member-row').forEach(row => {
+            const fields = ['.name-cell', '.furigana-cell', '.family-tag', '.nickname-cell', '.notes-cell'];
+            const hit = fields.some(sel => row.querySelector(sel).textContent.toLowerCase().includes(query));
+            row.style.display = hit ? '' : 'none';
+        });
+    };
+
+    const refresh = () => {
+        placeRows();
+        updateCount();
+        applyFilter();
+    };
+
+    window.clearSearch = () => {
+        search.value = '';
+        applyFilter();
+    };
+
+    refresh(); // 初期表示
 
     if (checkAll) {
         checkAll.addEventListener('change', (e) => {
             checkboxes.forEach(cb => cb.checked = e.target.checked);
-            updateCount();
+            refresh();
         });
     }
 
@@ -208,50 +326,22 @@ document.addEventListener('DOMContentLoaded', () => {
         clearAllBtn.addEventListener('click', () => {
             if (confirm('全ての選択をクリアしますか？')) {
                 checkboxes.forEach(cb => cb.checked = false);
-                if (checkAll) checkAll.checked = false;
-                updateCount();
+                refresh();
             }
         });
     }
 
     checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateCount);
-        // Also toggle row selection style class
+        cb.addEventListener('change', refresh);
         cb.closest('tr').addEventListener('click', function(e) {
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL' && !e.target.closest('label')) {
                 cb.checked = !cb.checked;
-                updateCount();
+                refresh();
             }
         });
     });
 
-    const tableBody = document.querySelector('.hover-table tbody');
-
-    // 検索フィルター機能
-    const searchInput = document.getElementById('member-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const query = this.value.trim().toLowerCase();
-            const rows = tableBody.querySelectorAll('tr');
-
-            rows.forEach(row => {
-                const td = row.querySelector('td');
-                if (!td || td.colSpan > 1) return; // 空の場合のメッセージ行などはスキップ
-
-                const name = row.querySelector('.name-cell').textContent.toLowerCase();
-                const furigana = row.querySelector('.furigana-cell').textContent.toLowerCase();
-                const familyId = row.querySelector('.family-tag').textContent.toLowerCase();
-                const nickname = row.querySelector('.nickname-cell').textContent.toLowerCase();
-                const notes = row.querySelector('.notes-cell').textContent.toLowerCase();
-
-                if (name.includes(query) || furigana.includes(query) || familyId.includes(query) || nickname.includes(query) || notes.includes(query)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
+    search.addEventListener('input', applyFilter);
 
     // ドライバー切り替え
     document.querySelectorAll('.driver-checkbox').forEach(cb => {
@@ -269,20 +359,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ソート機能
     const sortHeaders = document.querySelectorAll('.sortable');
-    let currentSort = 'count';
-    let currentDir = -1; // -1: 降順, 1: 昇順
-
     sortHeaders.forEach(th => {
         th.addEventListener('click', () => {
             const sortType = th.getAttribute('data-sort');
             if (currentSort === sortType) {
-                currentDir *= -1; // 順序を反転
+                currentDir *= -1;
             } else {
                 currentSort = sortType;
                 currentDir = sortType === 'count' ? -1 : 1; // 回数は降順、名前は昇順がデフォルト
             }
-
-            // アイコンの更新
             sortHeaders.forEach(header => {
                 const icon = header.querySelector('.sort-icon');
                 if (header.getAttribute('data-sort') === currentSort) {
@@ -291,40 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon.textContent = '↕';
                 }
             });
-
-            // 行のソート
-            const rows = Array.from(tableBody.querySelectorAll('tr'));
-            if (rows.length === 0 || rows[0].querySelector('td').colSpan > 1) return; // 空のデータ表示時はスキップ
-
-            rows.sort((a, b) => {
-                let valA, valB;
-                if (currentSort === 'name') {
-                    valA = a.querySelector('.member-name').textContent.trim();
-                    valB = b.querySelector('.member-name').textContent.trim();
-                    return valA.localeCompare(valB, 'ja') * currentDir;
-                } else if (currentSort === 'furigana') {
-                    valA = a.querySelector('.furigana-cell').textContent.trim();
-                    valB = b.querySelector('.furigana-cell').textContent.trim();
-                    return valA.localeCompare(valB, 'ja') * currentDir;
-                } else if (currentSort === 'nickname') {
-                    valA = a.querySelector('.nickname-cell').textContent.trim();
-                    valB = b.querySelector('.nickname-cell').textContent.trim();
-                    return valA.localeCompare(valB, 'ja') * currentDir;
-                } else if (currentSort === 'count') {
-                    valA = parseInt(a.querySelector('.count-val strong').textContent, 10) || 0;
-                    valB = parseInt(b.querySelector('.count-val strong').textContent, 10) || 0;
-                    if (valA === valB) {
-                        const nameA = a.querySelector('.name-cell').textContent.trim();
-                        const nameB = b.querySelector('.name-cell').textContent.trim();
-                        return nameA.localeCompare(nameB, 'ja');
-                    }
-                    return (valA - valB) * currentDir;
-                }
-                return 0;
-            });
-
-            // DOMへ再配置
-            rows.forEach(row => tableBody.appendChild(row));
+            sortBody(selectedBody);
+            sortBody(candidateBody);
         });
     });
 });

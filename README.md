@@ -19,9 +19,3 @@
 }
 ```
 
-`data/config.php`にファイルを作り、OpenAIのAPIキーを設定すると、スクショからメンバー選択が可能になります。
-
-```php
-<?php
-$OPENAI_API_KEY = "xxxx";
-```

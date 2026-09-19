@@ -1,7 +1,30 @@
 <?php
 
 class PairingAlgorithm {
-    public function generate($members, $history) {
+    const MODE_FAMILY = 'family';
+    const MODE_DRIVER = 'driver';
+    const MODE_RANDOM = 'random';
+
+    /**
+     * 選択できるアルゴリズム(モード)の一覧: [モードID => 表示名]
+     * - family: 家族を必ず同じ車にして、履歴・人数の均等さを考慮する(標準)
+     * - driver: ドライバーを軸に車を作り、家族は分けてもよい。履歴・人数の均等さは考慮する
+     * - random: ドライバー必須・定員・人数の均等さだけを守り、家族・履歴は考慮せずランダムに決める
+     */
+    public static function getModes() {
+        return [
+            self::MODE_FAMILY => '家族を一緒に',
+            self::MODE_DRIVER => 'ドライバー中心',
+            self::MODE_RANDOM => '完全ランダム',
+        ];
+    }
+
+    public static function normalizeMode($mode) {
+        return is_string($mode) && isset(self::getModes()[$mode]) ? $mode : self::MODE_FAMILY;
+    }
+
+    public function generate($members, $history, $mode = self::MODE_FAMILY) {
+        $mode = self::normalizeMode($mode);
         $families = [];
         $totalPeople = count($members);
         $totalDrivers = 0;
@@ -17,40 +40,45 @@ class PairingAlgorithm {
             }
         }
         
-        $familyBlocks = array_values($families);
-        
-        $minCars = (int)ceil($totalPeople / 4);
-        $maxCars = min($totalDrivers, $totalPeople); // bounded by drivers since each needs 1
-
         // Collect valid configs
         $validConfigs = [];
-        
-        // Try combinations of NumCars and AllowMultipleDrivers
-        for ($iter = 0; $iter < 100; $iter++) {
-            shuffle($familyBlocks); // Randomize
+
+        if ($mode !== self::MODE_FAMILY) {
+            // 家族の制約がないので、バックトラックせず直接組み立てる(人数が多くても速い)
+            $validConfigs = $this->buildIndividualConfigs($members, 200);
+        } else {
+            $familyBlocks = array_values($families);
+
+            $minCars = (int)ceil($totalPeople / 4);
+            $maxCars = min($totalDrivers, $totalPeople); // bounded by drivers since each needs 1
+
+            // Try combinations of NumCars and AllowMultipleDrivers
+            for ($iter = 0; $iter < 100; $iter++) {
+                shuffle($familyBlocks); // Randomize
             
-            // We search over possible K cars. If totalDrivers == 0, we only try K=0 (all walk).
-            $kStart = ($totalDrivers > 0) ? 1 : 0;
-            $kEnd = max(0, $maxCars);
+                // We search over possible K cars. If totalDrivers == 0, we only try K=0 (all walk).
+                $kStart = ($totalDrivers > 0) ? 1 : 0;
+                $kEnd = max(0, $maxCars);
             
-            for ($k = $kStart; $k <= $kEnd; $k++) {
-                $strictModePossible = ($totalDrivers <= $k);
+                for ($k = $kStart; $k <= $kEnd; $k++) {
+                    $strictModePossible = ($totalDrivers <= $k);
                 
-                $found = false;
-                if ($strictModePossible && $k > 0) {
-                    $res = $this->attemptPartition($familyBlocks, $k, false);
-                    if ($res !== false) {
-                        $validConfigs[] = $res;
-                        $found = true;
+                    $found = false;
+                    if ($strictModePossible && $k > 0) {
+                        $res = $this->attemptPartition($familyBlocks, $k, false);
+                        if ($res !== false) {
+                            $validConfigs[] = $res;
+                            $found = true;
+                        }
                     }
-                }
                 
-                // Fallback to allowing multiple drivers or K=0
-                if (!$found) {
-                    $res = $this->attemptPartition($familyBlocks, $k, true);
-                    if ($res !== false) {
-                        $validConfigs[] = $res;
-                        $found = true;
+                    // Fallback to allowing multiple drivers or K=0
+                    if (!$found) {
+                        $res = $this->attemptPartition($familyBlocks, $k, true);
+                        if ($res !== false) {
+                            $validConfigs[] = $res;
+                            $found = true;
+                        }
                     }
                 }
             }
@@ -92,7 +120,7 @@ class PairingAlgorithm {
         $bestScore = PHP_INT_MAX;
 
         foreach ($filteredConfigs as $config) {
-            $score = $this->calculateHistoryScore($config, $history);
+            $score = $this->calculateHistoryScore($config, $history, $mode);
             if ($score < $bestScore) {
                 $bestScore = $score;
                 $bestConfigs = [$config];
@@ -121,6 +149,56 @@ class PairingAlgorithm {
             'walk' => $chosen['walk'],
             'score' => $bestScore
         ];
+    }
+
+    /**
+     * 家族を考慮しないモード用: 1人ずつを独立した単位として、有効な配車パターンをランダムに作る。
+     * 車の数は「ドライバー数」と「必要台数(人数/4切り上げ)」の小さい方。
+     * 各車にドライバーを1人ずつ割り当て、残りを均等に配り、乗り切れない人は徒歩にする。
+     */
+    private function buildIndividualConfigs($members, $tries) {
+        $drivers = [];
+        $others = [];
+        foreach ($members as $m) {
+            if ($m['is_driver'] == '1') $drivers[] = $m; else $others[] = $m;
+        }
+        $total = count($members);
+        $driverCount = count($drivers);
+
+        if ($driverCount === 0) {
+            return [['cars' => [], 'walk' => $members]];
+        }
+
+        $k = min($driverCount, (int)ceil($total / 4));
+        $seated = min($total - $k, 3 * $k);
+        $configs = [];
+
+        for ($t = 0; $t < $tries; $t++) {
+            shuffle($drivers);
+            $cars = [];
+            for ($i = 0; $i < $k; $i++) {
+                $cars[$i] = [$drivers[$i]];
+            }
+            $pool = array_merge(array_slice($drivers, $k), $others);
+            shuffle($pool);
+            for ($i = 0; $i < $seated; $i++) {
+                $cars[$i % $k][] = $pool[$i];
+            }
+            $walk = array_slice($pool, $seated);
+
+            // 家族が異なる男女2人だけの車は作らない
+            $valid = true;
+            foreach ($cars as $car) {
+                if (count($car) === 2 && $car[0]['gender'] !== $car[1]['gender'] && $car[0]['family_id'] !== $car[1]['family_id']) {
+                    $valid = false;
+                    break;
+                }
+            }
+            if ($valid) {
+                $configs[] = ['cars' => $cars, 'walk' => $walk];
+            }
+        }
+        return $configs;
     }
 
     private function attemptPartition($blocks, $numCars, $allowMultipleDrivers) {
@@ -189,10 +267,11 @@ class PairingAlgorithm {
         return false;
     }
 
-    private function calculateHistoryScore($config, $history) {
+    private function calculateHistoryScore($config, $history, $mode = self::MODE_FAMILY) {
         $score = 0;
         $pastPairs = [];
-        foreach ($history as $h) {
+        // 完全ランダムでは履歴を見ない
+        foreach (($mode === self::MODE_RANDOM ? [] : $history) as $h) {
             $groups = [];
             if (isset($h['cars'])) {
                 foreach ($h['cars'] as $c) $groups[] = $c;
@@ -246,7 +325,7 @@ class PairingAlgorithm {
             }
             
             // ペナルティ: 1人だけ、または、その家族だけの組
-            if (count($familyIds) === 1) {
+            if ($mode !== self::MODE_RANDOM && count($familyIds) === 1) {
                 $score += 50;
             }
         }

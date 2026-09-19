@@ -25,6 +25,7 @@
 <?php else: ?>
     
     <div class="alert alert-info">
+        <strong>組み方:</strong> <?= htmlspecialchars($pairingModeName) ?> &nbsp;
         <strong>スコア (履歴重複度):</strong> <?= $result['score'] ?> （小さいほど良い組合せです）
         <span class="float-right text-muted" style="float: right; font-size: 0.85em;">処理時間: <strong><?= $executionTime ?></strong> ms</span>
     </div>
