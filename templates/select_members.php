@@ -36,6 +36,63 @@
     background: #dbeafe;
     color: #1e40af;
 }
+/* 選択中メンバーの表示/非表示スイッチ(非表示時は見出しだけ残す) */
+#selected-body.is-hidden tr:not(.section-row) {
+    display: none !important;
+}
+.toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    vertical-align: middle;
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.85rem;
+}
+.selected-toggle {
+    margin-left: 0.75rem;
+}
+.toggle-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-switch .switch-track {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: #cbd5e1;
+    transition: background 0.15s;
+}
+.toggle-switch .switch-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s;
+}
+.toggle-switch input:checked + .switch-track {
+    background: var(--primary-color, #2563eb);
+}
+.toggle-switch input:checked + .switch-track::after {
+    transform: translateX(16px);
+}
+.toggle-switch input:focus-visible + .switch-track {
+    outline: 2px solid var(--primary-color, #2563eb);
+    outline-offset: 2px;
+}
+/* ふりがなは検索専用(表示しない) */
+.table td.furigana-cell {
+    display: none !important;
+}
 .table tbody tr.empty-row td {
     color: var(--text-muted);
     text-align: center;
@@ -162,7 +219,6 @@
                             <input type="checkbox" id="check-all" title="すべて選択">
                         </th>
                         <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;" title="クリックでソート">名前 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
-                        <th class="sortable" data-sort="furigana" style="cursor: pointer; user-select: none;" title="クリックでソート">ふりがな <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
                         <th>家族ID</th>
                         <th>タイプ</th>
                         <th class="sortable" data-sort="nickname" style="cursor: pointer; user-select: none;" title="クリックでソート">ニックネーム <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
@@ -171,29 +227,33 @@
                     </tr>
                 </thead>
                 <tbody id="selected-body">
-                    <tr class="section-row"><td colspan="8">✅ 選択中 <span id="selected-heading-count">0</span> 人</td></tr>
-                    <tr class="empty-row" id="selected-empty"><td colspan="8">まだ選ばれていません。下の候補から選んでください。</td></tr>
+                    <tr class="section-row"><td colspan="7">✅ 選択中 <span id="selected-heading-count">0</span> 人
+                        <label class="toggle-switch selected-toggle" title="選択中のメンバーの表示/非表示">
+                            <input type="checkbox" id="toggle-selected" checked role="switch">
+                            <span class="switch-track"></span>
+                            <span id="toggle-selected-label">表示</span>
+                        </label>
+                    </td></tr>
+                    <tr class="empty-row" id="selected-empty"><td colspan="7">まだ選ばれていません。下の候補から選んでください。</td></tr>
                 </tbody>
                 <tbody id="candidate-body">
-                    <tr class="section-row"><td colspan="8">➕ 選択候補 <span id="candidate-heading-count">0</span> 人</td></tr>
-                    <tr class="empty-row" id="candidate-empty" style="display: none;"><td colspan="8"><?= empty($members) ? '名簿がありません。「名簿編集」から登録してください。' : '選択候補はありません。' ?></td></tr>
+                    <tr class="section-row"><td colspan="7">➕ 選択候補 <span id="candidate-heading-count">0</span> 人</td></tr>
+                    <tr class="empty-row" id="candidate-empty" style="display: none;"><td colspan="7"><?= empty($members) ? '名簿がありません。「名簿編集」から登録してください。' : '選択候補はありません。' ?></td></tr>
                     <?php foreach ($members as $m): ?>
                     <tr class="member-row">
                         <td class="text-center checkbox-cell" data-label="選択">
                             <input type="checkbox" name="selected_ids[]" value="<?= htmlspecialchars($m['id']) ?>" class="member-checkbox" <?= in_array($m['id'], $selectedIds) ? 'checked' : '' ?>>
                         </td>
                         <td class="name-cell" data-label="名前">
-                            <span class="member-name"><?= htmlspecialchars($m['name']) ?></span>
-                            <span class="badge-gender-<?= strtolower($m['gender']) ?>">
-                                <?= $m['gender'] === 'M' ? '男' : '女' ?>
-                            </span>
+                            <span class="member-name <?= $m['gender'] === 'M' ? 'man' : 'woman' ?>"><?= htmlspecialchars($m['name']) ?></span>
                         </td>
                         <td class="furigana-cell" data-label="ふりがな"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
                         <td data-label="家族ID"><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
                         <td data-label="タイプ">
-                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
-                                <input type="checkbox" name="is_driver[<?= htmlspecialchars($m['id']) ?>]" value="1" <?= $m['is_driver'] === '1' ? 'checked' : '' ?> class="driver-checkbox">
-                                <span class="<?= $m['is_driver'] === '1' ? 'badge-driver' : 'badge-passenger' ?>">
+                            <label class="toggle-switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[<?= htmlspecialchars($m['id']) ?>]" value="1" <?= $m['is_driver'] === '1' ? 'checked' : '' ?> class="driver-checkbox" role="switch">
+                                <span class="switch-track"></span>
+                                <span class="driver-label <?= $m['is_driver'] === '1' ? 'badge-driver' : 'badge-passenger' ?>">
                                     <?= $m['is_driver'] === '1' ? '🚗 ドライバー' : '👤 乗客' ?>
                                 </span>
                             </label>
@@ -244,8 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const compareRows = (a, b) => {
         if (currentSort === 'name') {
             return text(a, '.member-name').localeCompare(text(b, '.member-name'), 'ja') * currentDir;
-        } else if (currentSort === 'furigana') {
-            return text(a, '.furigana-cell').localeCompare(text(b, '.furigana-cell'), 'ja') * currentDir;
         } else if (currentSort === 'nickname') {
             return text(a, '.nickname-cell').localeCompare(text(b, '.nickname-cell'), 'ja') * currentDir;
         } else if (currentSort === 'count') {
@@ -307,6 +365,16 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFilter();
     };
 
+    // 選択中メンバーの表示/非表示スイッチ
+    const toggleSelected = document.getElementById('toggle-selected');
+    const toggleLabel = document.getElementById('toggle-selected-label');
+    const applySelectedVisibility = () => {
+        selectedBody.classList.toggle('is-hidden', !toggleSelected.checked);
+        toggleLabel.textContent = toggleSelected.checked ? '表示' : '非表示';
+    };
+    toggleSelected.addEventListener('change', applySelectedVisibility);
+    applySelectedVisibility();
+
     window.clearSearch = () => {
         search.value = '';
         applyFilter();
@@ -346,12 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ドライバー切り替え
     document.querySelectorAll('.driver-checkbox').forEach(cb => {
         cb.addEventListener('change', function() {
-            const badge = this.nextElementSibling;
+            const badge = this.closest('label').querySelector('.driver-label');
             if (this.checked) {
-                badge.className = 'badge-driver';
+                badge.className = 'driver-label badge-driver';
                 badge.innerHTML = '🚗 ドライバー';
             } else {
-                badge.className = 'badge-passenger';
+                badge.className = 'driver-label badge-passenger';
                 badge.innerHTML = '👤 乗客';
             }
         });

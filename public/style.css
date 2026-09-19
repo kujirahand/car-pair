@@ -250,6 +250,8 @@ ul, ol { list-style: none; }
 
 .badge-driver { background: #dcfce7; color: #166534; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
 .badge-passenger { background: #f3f4f6; color: #4b5563; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.man { color: #1d4ed8; }
+.woman { color: #dc2626; }
 .badge-gender-m { background: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.25rem; font-weight: bold;}
 .badge-gender-f { background: #fce7f3; color: #be185d; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.25rem; font-weight: bold;}
 

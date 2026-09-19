@@ -1,0 +1,1607 @@
+
+Notice: session_start(): Ignoring session_start() because a session is already active (started from /Users/kujirahand/repos/car-pair/tests/debug_html2.php on line 2) in /Users/kujirahand/repos/car-pair/index.php on line 2
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Pairing App</title>
+    <!-- Modern font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="public/style.css?v=1775298255">
+</head>
+<body>
+    <div class="app-container">
+                <nav class="navbar">
+            <div class="nav-brand">
+                🚗 Car Pairing
+                <span class="nav-workspace-name">デフォルト</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="?action=select_members" class="active">配車</a></li>
+                <li><a href="?action=history" class="">履歴</a></li>
+                <li><a href="?action=edit_list" class="">名簿</a></li>
+                <li><a href="?action=switch_workspace" class="">切替</a></li>
+                <li><a href="?action=logout" class="logout-btn">ログアウト</a></li>
+            </ul>
+        </nav>
+        
+        <main class="content-area">
+            
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <h1 class="page-title" style="margin-bottom: 0;">👥 今回の参加者を選択</h1>
+    <div style="display: flex; gap: 10px;">
+        <a href="?action=select_by_textbox" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📝 テキストから追加</a>
+        <a href="?action=select_by_screenshot" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📸 スクショから選択</a>
+        <button type="button" id="clear-all-btn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); background: #fff;">🗑️ 全部クリア</button>
+    </div>
+</div>
+<style>
+.table tbody tr.selected-row {
+    background-color: #eff6ff !important;
+}
+.table tbody tr.selected-row td {
+    border-bottom-color: #bfdbfe;
+}
+
+/* Mobile responsive table */
+@media (max-width: 768px) {
+    .table-responsive table,
+    .table-responsive thead,
+    .table-responsive tbody,
+    .table-responsive th,
+    .table-responsive td,
+    .table-responsive tr {
+        display: block;
+    }
+
+    /* Hide table headers (but not display: none;, for accessibility) */
+    .table-responsive thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .table-responsive tr {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        background: #fff;
+        padding: 0.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .table-responsive td {
+        border: none;
+        border-bottom: 1px solid #f3f4f6;
+        position: relative;
+        padding-left: 35%;
+        text-align: right;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .table-responsive td:last-child {
+        border-bottom: 0;
+    }
+
+    /* Column titles for mobile */
+    .table-responsive td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        width: 30%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    /* Special styling for checkbox row on mobile */
+    .table-responsive td.checkbox-cell {
+        padding-left: 1rem;
+        justify-content: flex-start;
+        background: #f8fafc;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        margin: -0.5rem -0.5rem 0.5rem -0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .table-responsive td.checkbox-cell::before {
+        display: none;
+    }
+
+    /* Simple mobile view: Only show Name and Type */
+    .table-responsive td[data-label="ふりがな"],
+    .table-responsive td[data-label="家族ID"],
+    .table-responsive td[data-label="ニックネーム"],
+    .table-responsive td[data-label="備考"],
+    .table-responsive td[data-label="参加回数"] {
+        display: none;
+    }
+}
+</style>
+
+<div class="card form-card">
+    
+    <form action="?action=select_members" method="post" id="select-members-form">
+        <div class="mb-3">
+            <input type="search" id="member-search" class="form-control" placeholder="名前、ふりがな、家族IDで検索..." autocomplete="off">
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table hover-table">
+                <thead>
+                    <tr>
+                        <th width="50" class="text-center">
+                            <input type="checkbox" id="check-all" title="すべて選択">
+                        </th>
+                        <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;" title="クリックでソート">名前 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
+                        <th class="sortable" data-sort="furigana" style="cursor: pointer; user-select: none;" title="クリックでソート">ふりがな <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↕</span></th>
+                        <th>家族ID</th>
+                        <th>タイプ</th>
+                        <th>ニックネーム</th>
+                        <th>備考</th>
+                        <th class="sortable" data-sort="count" style="cursor: pointer; user-select: none;" title="クリックでソート">参加回数 <span class="sort-icon text-muted" style="font-size: 0.8em; margin-left: 4px;">↓</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                                                            <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="1" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">椚 宣幸</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">くぬぎのりゆき</td>
+                        <td data-label="家族ID"><span class="family-tag">椚</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[1]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">のり</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="2" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">椚 千尋</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">くぬぎちひろ</td>
+                        <td data-label="家族ID"><span class="family-tag">椚</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[2]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="3" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">加賀田 浩 </span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かがたひろし</td>
+                        <td data-label="家族ID"><span class="family-tag">加賀田浩</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[3]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">ひろし</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="4" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">キョウレイ</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かがたきょうれい</td>
+                        <td data-label="家族ID"><span class="family-tag">加賀田浩</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[4]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="7" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">太地 亮夫</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">たいちあきお</td>
+                        <td data-label="家族ID"><span class="family-tag">太地</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[7]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="8" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">太地 真紀子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">たいちまきこ</td>
+                        <td data-label="家族ID"><span class="family-tag">太地</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[8]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="9" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">太地 小雪</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">たいちこゆき</td>
+                        <td data-label="家族ID"><span class="family-tag">太地 小雪</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[9]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="10" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">太地 創</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">たいちそう</td>
+                        <td data-label="家族ID"><span class="family-tag">太地 創</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[10]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">そう</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="14" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">物應 哲也</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">もつおてつや</td>
+                        <td data-label="家族ID"><span class="family-tag">物應 哲也</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[14]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="15" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">物應 由紀子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">もつおゆきこ</td>
+                        <td data-label="家族ID"><span class="family-tag">物應 哲也</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[15]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="20" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">長屋 明子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ながやきこ</td>
+                        <td data-label="家族ID"><span class="family-tag">長屋</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[20]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="28" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">國分 未奈美</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">こくぶんみなみ</td>
+                        <td data-label="家族ID"><span class="family-tag">國分 未奈美</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[28]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="30" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">山田 里映子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">やまだりえこ</td>
+                        <td data-label="家族ID"><span class="family-tag">山田 里映子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[30]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="31" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">福田 豊</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ふくだゆたか</td>
+                        <td data-label="家族ID"><span class="family-tag">福田 豊</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[31]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">ゆた</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="32" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">福田 愛 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ふくだあい</td>
+                        <td data-label="家族ID"><span class="family-tag">福田 豊</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[32]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="36" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">垣本 真奈</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かきもとまな</td>
+                        <td data-label="家族ID"><span class="family-tag">垣本 マユミ</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[36]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">かきまな</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="40" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">長屋 明日香 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ながやあすか</td>
+                        <td data-label="家族ID"><span class="family-tag">長屋 明日香</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[40]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="49" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">山田 準也</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">やまだじゅんや</td>
+                        <td data-label="家族ID"><span class="family-tag">山田 準也</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[49]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">じゅんや</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="50" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">鍋田 耕平</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">なべたこうへい</td>
+                        <td data-label="家族ID"><span class="family-tag">鍋田</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[50]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">なべちゃん</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="54" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">鍋田 翔子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">なべたしょうこ</td>
+                        <td data-label="家族ID"><span class="family-tag">鍋田</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[54]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>10</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="6" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">佐々木 尚美</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ささきなおみ</td>
+                        <td data-label="家族ID"><span class="family-tag">佐々木 尚美</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[6]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">なおみん</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>5</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="13" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">野尻 節子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">のじりせつこ</td>
+                        <td data-label="家族ID"><span class="family-tag">野尻 節子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[13]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>5</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="38" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">酒徳 峰章</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">さかとくみねあき</td>
+                        <td data-label="家族ID"><span class="family-tag">酒徳</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[38]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>5</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="39" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">酒徳 友</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">さかとくとも</td>
+                        <td data-label="家族ID"><span class="family-tag">酒徳</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[39]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">とも</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>5</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="5" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">上間 佐智子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">うえまさちこ</td>
+                        <td data-label="家族ID"><span class="family-tag">上間 佐智子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[5]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="11" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">中川 恵美子 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">なかがわえみこ</td>
+                        <td data-label="家族ID"><span class="family-tag">中川 恵美子 </span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[11]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="12" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">西山 正子 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">にしやままさこ</td>
+                        <td data-label="家族ID"><span class="family-tag">西山 正子 </span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[12]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="16" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">山本 陽子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">やまもとようこ</td>
+                        <td data-label="家族ID"><span class="family-tag">山本 陽子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[16]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="17" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">吉川 令子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">よしかわれいこ</td>
+                        <td data-label="家族ID"><span class="family-tag">吉川 令子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[17]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="18" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">渡部 祐子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">わたなべゆうこ</td>
+                        <td data-label="家族ID"><span class="family-tag">渡部 祐子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[18]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="19" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">長屋 雅明</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ながやまさあき</td>
+                        <td data-label="家族ID"><span class="family-tag">長屋</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[19]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="21" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">熊谷 友彦</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">くまがいともひこ</td>
+                        <td data-label="家族ID"><span class="family-tag">熊谷 友彦</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[21]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="22" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">熊谷 桐子 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">くまがいきりこ</td>
+                        <td data-label="家族ID"><span class="family-tag">熊谷 友彦 </span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[22]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="23" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">秋山 由紀子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">あきやまゆきこ</td>
+                        <td data-label="家族ID"><span class="family-tag">秋山 由紀子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[23]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="24" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">石川 洋子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">いしかわようこ</td>
+                        <td data-label="家族ID"><span class="family-tag">石川 洋子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[24]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="25" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">石毛 俊之</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">いしげ</td>
+                        <td data-label="家族ID"><span class="family-tag">石毛 俊之</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[25]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="26" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">梶谷 裕子 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かじたに</td>
+                        <td data-label="家族ID"><span class="family-tag">梶谷 裕子 </span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[26]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="27" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">川崎 奈海 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かわさきなみ</td>
+                        <td data-label="家族ID"><span class="family-tag">川崎 奈海 </span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[27]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="29" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">細谷 恵子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ほそやけいこ</td>
+                        <td data-label="家族ID"><span class="family-tag">細谷</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[29]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="33" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">加賀田 眞</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かがたまこと</td>
+                        <td data-label="家族ID"><span class="family-tag">加賀田 眞</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[33]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="34" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">加賀田 和美子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かがたとみこ</td>
+                        <td data-label="家族ID"><span class="family-tag">加賀田 真</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[34]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="35" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">垣本 マユミ</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">かきもとまゆみ</td>
+                        <td data-label="家族ID"><span class="family-tag">垣本 マユミ</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[35]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="37" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">斎藤 京子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">さいとうきょうこ</td>
+                        <td data-label="家族ID"><span class="family-tag">斎藤 京子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[37]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="41" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">錦織 悠</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">にしこおりゆう</td>
+                        <td data-label="家族ID"><span class="family-tag">錦織</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[41]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="42" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">錦織 明美 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">にしこおりあけみ</td>
+                        <td data-label="家族ID"><span class="family-tag">錦織</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[42]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="43" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">樋口 佳織</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ひぐちかおり</td>
+                        <td data-label="家族ID"><span class="family-tag">樋口 佳織</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[43]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="44" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">浅川 小百合</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">あさかわさゆり</td>
+                        <td data-label="家族ID"><span class="family-tag">浅川 小百合</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[44]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="45" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">石塚 文雄 </span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">いしづかふみお</td>
+                        <td data-label="家族ID"><span class="family-tag">石塚 文雄 </span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[45]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="46" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">牛丸 孝</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">うしまる</td>
+                        <td data-label="家族ID"><span class="family-tag">牛丸</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[46]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="47" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">牛丸 泰乃 </span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">うしまる</td>
+                        <td data-label="家族ID"><span class="family-tag">牛丸</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[47]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="48" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">宮内 美紀子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">みやうちみきこ/まりりん</td>
+                        <td data-label="家族ID"><span class="family-tag">宮内 美紀子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[48]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="51" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">大川原 久美子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">おおがわら</td>
+                        <td data-label="家族ID"><span class="family-tag">大川原 久美子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[51]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="52" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">佐々木 彩圭</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ささきあやか</td>
+                        <td data-label="家族ID"><span class="family-tag">佐々木 彩圭</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[52]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="53" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">鈴木 越美子</span>
+                            <span class="badge-gender-f">
+                                女                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">すずきえみこ</td>
+                        <td data-label="家族ID"><span class="family-tag">鈴木 越美子</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[53]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="55" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">山田 省吾</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">やまだしょうご</td>
+                        <td data-label="家族ID"><span class="family-tag">山田 省吾</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[55]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">0</td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="56" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">テスト太郎</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">てすとたろう</td>
+                        <td data-label="家族ID"><span class="family-tag">テスト家</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[56]" value="1" checked class="driver-checkbox">
+                                <span class="badge-driver">
+                                    🚗 ドライバー                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム">タロー</td>
+                        <td class="notes-cell" data-label="備考">デバッグ用</td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="57" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">名無ゴン</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ななしごん</td>
+                        <td data-label="家族ID"><span class="family-tag">テスト家</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[57]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                        <tr>
+                        <td class="text-center checkbox-cell" data-label="選択">
+                            <input type="checkbox" name="selected_ids[]" value="57" class="member-checkbox" >
+                        </td>
+                        <td class="name-cell" data-label="名前">
+                            <span class="member-name">名無ゴン</span>
+                            <span class="badge-gender-m">
+                                男                            </span>
+                        </td>
+                        <td class="furigana-cell" data-label="ふりがな">ななしごん</td>
+                        <td data-label="家族ID"><span class="family-tag">テスト家</span></td>
+                        <td data-label="タイプ">
+                            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="is_driver[57]" value="1"  class="driver-checkbox">
+                                <span class="badge-passenger">
+                                    👤 乗客                                </span>
+                            </label>
+                        </td>
+                        <td class="nickname-cell" data-label="ニックネーム"></td>
+                        <td class="notes-cell" data-label="備考"></td>
+                        <td class="count-val" data-label="参加回数"><strong>0</strong> 回</td>
+                    </tr>
+                                                        </tbody>
+            </table>
+        </div>
+        
+        <div class="form-actions sticky-actions">
+            <div class="selection-summary">
+                <span id="selected-count" class="badge">0</span> 人
+            </div>
+            <button type="submit" class="btn btn-primary pulse-hover">決定</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const checkAll = document.getElementById('check-all');
+    const checkboxes = document.querySelectorAll('.member-checkbox');
+    const countSpan = document.getElementById('selected-count');
+
+    const updateCount = () => {
+        const count = Array.from(checkboxes).filter(cb => {
+            const tr = cb.closest('tr');
+            if (cb.checked) {
+                tr.classList.add('selected-row');
+            } else {
+                tr.classList.remove('selected-row');
+            }
+            return cb.checked;
+        }).length;
+        countSpan.textContent = count;
+        countSpan.classList.toggle('active-count', count > 0);
+    };
+
+    updateCount(); // Initialize state on load
+
+    if (checkAll) {
+        checkAll.addEventListener('change', (e) => {
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            updateCount();
+        });
+    }
+
+    const clearAllBtn = document.getElementById('clear-all-btn');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm('全ての選択をクリアしますか？')) {
+                checkboxes.forEach(cb => cb.checked = false);
+                if (checkAll) checkAll.checked = false;
+                updateCount();
+            }
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateCount);
+        // Also toggle row selection style class
+        cb.closest('tr').addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') {
+                cb.checked = !cb.checked;
+                updateCount();
+            }
+        });
+    });
+
+    const tableBody = document.querySelector('.hover-table tbody');
+
+    // 検索フィルター機能
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            const rows = tableBody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const td = row.querySelector('td');
+                if (!td || td.colSpan > 1) return; // 空の場合のメッセージ行などはスキップ
+
+                const name = row.querySelector('.name-cell').textContent.toLowerCase();
+                const furigana = row.querySelector('.furigana-cell').textContent.toLowerCase();
+                const familyId = row.querySelector('.family-tag').textContent.toLowerCase();
+                const nickname = row.querySelector('.nickname-cell').textContent.toLowerCase();
+                const notes = row.querySelector('.notes-cell').textContent.toLowerCase();
+
+                if (name.includes(query) || furigana.includes(query) || familyId.includes(query) || nickname.includes(query) || notes.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // ドライバー切り替え
+    document.querySelectorAll('.driver-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const badge = this.nextElementSibling;
+            if (this.checked) {
+                badge.className = 'badge-driver';
+                badge.innerHTML = '🚗 ドライバー';
+            } else {
+                badge.className = 'badge-passenger';
+                badge.innerHTML = '👤 乗客';
+            }
+        });
+    });
+
+    // ソート機能
+    const sortHeaders = document.querySelectorAll('.sortable');
+    let currentSort = 'count';
+    let currentDir = -1; // -1: 降順, 1: 昇順
+
+    sortHeaders.forEach(th => {
+        th.addEventListener('click', () => {
+            const sortType = th.getAttribute('data-sort');
+            if (currentSort === sortType) {
+                currentDir *= -1; // 順序を反転
+            } else {
+                currentSort = sortType;
+                currentDir = sortType === 'count' ? -1 : 1; // 回数は降順、名前は昇順がデフォルト
+            }
+
+            // アイコンの更新
+            sortHeaders.forEach(header => {
+                const icon = header.querySelector('.sort-icon');
+                if (header.getAttribute('data-sort') === currentSort) {
+                    icon.textContent = currentDir === 1 ? '↑' : '↓';
+                } else {
+                    icon.textContent = '↕';
+                }
+            });
+
+            // 行のソート
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            if (rows.length === 0 || rows[0].querySelector('td').colSpan > 1) return; // 空のデータ表示時はスキップ
+
+            rows.sort((a, b) => {
+                let valA, valB;
+                if (currentSort === 'name') {
+                    valA = a.querySelector('.member-name').textContent.trim();
+                    valB = b.querySelector('.member-name').textContent.trim();
+                    return valA.localeCompare(valB, 'ja') * currentDir;
+                } else if (currentSort === 'furigana') {
+                    valA = a.querySelector('.furigana-cell').textContent.trim();
+                    valB = b.querySelector('.furigana-cell').textContent.trim();
+                    return valA.localeCompare(valB, 'ja') * currentDir;
+                } else if (currentSort === 'count') {
+                    valA = parseInt(a.querySelector('.count-val strong').textContent, 10) || 0;
+                    valB = parseInt(b.querySelector('.count-val strong').textContent, 10) || 0;
+                    if (valA === valB) {
+                        const nameA = a.querySelector('.name-cell').textContent.trim();
+                        const nameB = b.querySelector('.name-cell').textContent.trim();
+                        return nameA.localeCompare(nameB, 'ja');
+                    }
+                    return (valA - valB) * currentDir;
+                }
+                return 0;
+            });
+
+            // DOMへ再配置
+            rows.forEach(row => tableBody.appendChild(row));
+        });
+    });
+});
+</script>
+        </main>
+    </div>
+    <div class="footer">
+        <div class="footer-content">
+            <p>Car Pairing App
+                <a href="https://github.com/kujirahand/car-pair">ソースコード</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
