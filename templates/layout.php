@@ -1,3 +1,12 @@
+<?php
+// 先に本文を描画して、各テンプレートが $pageMenuItems(メニューへの追加項目)を設定できるようにする
+$pageMenuItems = [];
+ob_start();
+if (isset($contentView) && file_exists(__DIR__ . '/' . $contentView)) {
+    require __DIR__ . '/' . $contentView;
+}
+$contentHtml = ob_get_clean();
+?>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -19,7 +28,18 @@
                 🚗 Car Pairing
                 <span class="nav-workspace-name"><?= htmlspecialchars($currentWorkspaceName) ?></span>
             </div>
-            <ul class="nav-links">
+            <button type="button" class="menu-toggle" id="menu-toggle" aria-label="メニュー" aria-expanded="false" aria-controls="nav-menu">☰</button>
+            <ul class="nav-links" id="nav-menu" hidden>
+                <?php foreach ($pageMenuItems as $item): ?>
+                <li>
+                    <?php if (isset($item['href'])): ?>
+                    <a href="<?= htmlspecialchars($item['href']) ?>"><?= htmlspecialchars($item['label']) ?></a>
+                    <?php else: ?>
+                    <button type="button" id="<?= htmlspecialchars($item['id']) ?>" class="menu-action <?= !empty($item['danger']) ? 'danger' : '' ?>"><?= htmlspecialchars($item['label']) ?></button>
+                    <?php endif; ?>
+                </li>
+                <?php endforeach; ?>
+                <?php if ($pageMenuItems): ?><li class="menu-divider" role="separator"></li><?php endif; ?>
                 <li><a href="?action=select_members" class="<?= $action === 'select_members' ? 'active' : '' ?>">配車</a></li>
                 <li><a href="?action=history" class="<?= $action === 'history' ? 'active' : '' ?>">履歴</a></li>
                 <li><a href="?action=edit_list" class="<?= $action === 'edit_list' ? 'active' : '' ?>">名簿</a></li>
@@ -37,11 +57,7 @@
                 <?php unset($_SESSION['flash_message']); ?>
             <?php endif; ?>
 
-            <?php
-            if (isset($contentView) && file_exists(__DIR__ . '/' . $contentView)) {
-                require __DIR__ . '/' . $contentView;
-            }
-            ?>
+            <?= $contentHtml ?>
         </main>
     </div>
     <div class="footer">
@@ -51,5 +67,22 @@
             </p>
         </div>
     </div>
+<?php if ($auth->isLoggedIn()): ?>
+    <script>
+    (function () {
+        const toggle = document.getElementById('menu-toggle');
+        const menu = document.getElementById('nav-menu');
+        const setOpen = (open) => {
+            menu.hidden = !open;
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.textContent = open ? '✕' : '☰';
+        };
+        toggle.addEventListener('click', (e) => { e.stopPropagation(); setOpen(menu.hidden); });
+        menu.addEventListener('click', () => setOpen(false));
+        document.addEventListener('click', (e) => { if (!menu.contains(e.target)) setOpen(false); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+    })();
+    </script>
+<?php endif; ?>
 </body>
 </html>

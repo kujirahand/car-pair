@@ -3,6 +3,8 @@ require_once __DIR__ . '/../logic/PairingAlgorithm.php';
 // 参加者選択画面のテンプレートが「選択中」「選択候補」の2セクション構成になっていることを確認する
 
 class SelectMembersTemplateTest {
+    private $menuItems = [];
+
     private function assert($condition, $message) {
         if (!$condition) {
             throw new Exception($message);
@@ -14,6 +16,7 @@ class SelectMembersTemplateTest {
         $pairingModes = PairingAlgorithm::getModes();
         ob_start();
         include __DIR__ . '/../templates/select_members.php';
+        $this->menuItems = $pageMenuItems ?? [];
         return ob_get_clean();
     }
 
@@ -67,7 +70,7 @@ class SelectMembersTemplateTest {
         $this->assert(substr_count($html, 'class="driver-checkbox"') === 2, '各メンバーにドライバー切り替えスイッチが必要です');
         $this->assert(substr_count($html, 'class="switch-track"') === 3, 'ドライバー2件+選択中表示の計3つのスイッチが必要です');
         $this->assert(preg_match('/name="is_driver\[a\]" value="1" checked class="driver-checkbox"/', $html) === 1, 'ドライバーのチェック状態が維持されていません');
-        $this->assert(strpos($html, '🚗 ドライバー') !== false && strpos($html, '👤 乗客') !== false, 'ドライバー/乗客のラベルがありません');
+        $this->assert(strpos($html, '🚗 運転') !== false && strpos($html, '👤 乗客') !== false, '運転/乗客のラベルがありません');
     }
 
     public function testGenderByTextColorClass() {
@@ -92,6 +95,14 @@ class SelectMembersTemplateTest {
     public function testScreenshotButtonRemoved() {
         $html = $this->render($this->sampleMembers(), []);
         $this->assert(strpos($html, 'select_by_screenshot') === false, 'スクショ選択のリンクが残っています');
-        $this->assert(strpos($html, 'select_by_textbox') !== false, 'テキストから追加は残すこと');
+        $this->assert(strpos(json_encode($this->menuItems), 'select_by_textbox') !== false, 'テキストから追加は残すこと');
+    }
+
+    public function testActionsMovedToHamburgerMenu() {
+        $html = $this->render($this->sampleMembers(), []);
+        $ids = array_column($this->menuItems, 'id');
+        $this->assert(in_array('clear-all-btn', $ids, true), '全部クリアがメニュー項目にありません');
+        $this->assert(strpos($html, 'id="clear-all-btn"') === false, '全部クリアが画面本体に残っています');
+        $this->assert(strpos($html, '📝 テキストから追加') === false, 'テキストから追加が画面本体に残っています');
     }
 }

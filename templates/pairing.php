@@ -42,15 +42,12 @@
                 <?php foreach ($car as $p): ?>
                 <li class="<?= $p['is_driver'] === '1' ? 'is-driver' : 'is-passenger' ?>">
                     <div class="passenger-info">
-                        <strong><?= htmlspecialchars($p['name']) ?></strong>
+                        <strong class="<?= $p['gender'] === 'M' ? 'man' : 'woman' ?>"><?= htmlspecialchars($p['name']) ?></strong>
                         <div class="passenger-meta">
                             <span class="family-tag float"><?= htmlspecialchars($p['family_id']) ?></span>
-                            <?= $p['gender'] === 'M' ? '<span class="gender-m">♂</span>' : '<span class="gender-f">♀</span>' ?>
                         </div>
                     </div>
-                    <?php if ($p['is_driver'] === '1'): ?>
-                        <span class="driver-icon" title="ドライバー">🔑</span>
-                    <?php endif; ?>
+                    <span class="driver-icon" title="<?= $p['is_driver'] === '1' ? 'ドライバー' : '乗客' ?>"><?= $p['is_driver'] === '1' ? '🚗' : '👤' ?></span>
                 </li>
                 <?php endforeach; ?>
             </ul>
@@ -67,12 +64,12 @@
                 <?php foreach ($result['walk'] as $p): ?>
                 <li class="is-passenger">
                     <div class="passenger-info">
-                        <strong><?= htmlspecialchars($p['name']) ?></strong>
+                        <strong class="<?= $p['gender'] === 'M' ? 'man' : 'woman' ?>"><?= htmlspecialchars($p['name']) ?></strong>
                         <div class="passenger-meta">
                             <span class="family-tag float"><?= htmlspecialchars($p['family_id']) ?></span>
-                            <?= $p['gender'] === 'M' ? '<span class="gender-m">♂</span>' : '<span class="gender-f">♀</span>' ?>
                         </div>
                     </div>
+                    <span class="driver-icon" title="<?= $p['is_driver'] === '1' ? 'ドライバー' : '乗客' ?>"><?= $p['is_driver'] === '1' ? '🚗' : '👤' ?></span>
                 </li>
                 <?php endforeach; ?>
             </ul>

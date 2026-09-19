@@ -1,9 +1,12 @@
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-    <h1 class="page-title" style="margin-bottom: 0;">👥 今回の参加者を選択</h1>
-    <div style="display: flex; gap: 10px;">
-        <a href="?action=select_by_textbox" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); background: #fff;">📝 テキストから追加</a>
-        <button type="button" id="clear-all-btn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); background: #fff;">🗑️ 全部クリア</button>
-    </div>
+<?php
+// ハンバーガーメニューに出す、この画面専用の項目(layout.php が表示する)
+$pageMenuItems = [
+    ['label' => '📝 テキストから追加', 'href' => '?action=select_by_textbox'],
+    ['label' => '🗑️ 全部クリア', 'id' => 'clear-all-btn', 'danger' => true],
+];
+?>
+<div class="page-header">
+    <h1 class="page-title">👥 今回の参加者を選択</h1>
 </div>
 <style>
 .table tbody tr.selected-row {
@@ -99,7 +102,7 @@
     padding: 1rem;
 }
 
-/* Mobile responsive table */
+/* Mobile: 1人1行のコンパクト表示(ドライバー/乗客だけタップで切替) */
 @media (max-width: 768px) {
     .table-responsive table,
     .table-responsive thead,
@@ -110,7 +113,7 @@
         display: block;
     }
 
-    /* Hide table headers (but not display: none;, for accessibility) */
+    /* ヘッダーは隠す(display: none にはしない) */
     .table-responsive thead tr {
         position: absolute;
         top: -9999px;
@@ -119,83 +122,98 @@
 
     .table-responsive tr {
         border: 1px solid var(--border);
-        border-radius: var(--radius);
-        margin-bottom: 1rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.35rem;
         background: #fff;
-        padding: 0.5rem;
-        box-shadow: var(--shadow-sm);
     }
 
     .table-responsive td {
         border: none;
-        border-bottom: 1px solid #f3f4f6;
-        position: relative;
-        padding-left: 35%;
-        text-align: right;
-        min-height: 44px;
+        padding: 0;
+    }
+
+    /* メンバー行: [チェック] 名前 ........ [タイプ] を1行に */
+    .table-responsive tr.member-row {
         display: flex;
         align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.3rem 0.6rem;
+        min-height: 44px;
     }
-
-    .table-responsive td:last-child {
-        border-bottom: 0;
+    .table-responsive tr.member-row td.checkbox-cell {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
     }
-
-    /* Column titles for mobile */
-    .table-responsive td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 1rem;
-        width: 30%;
-        padding-right: 10px;
-        white-space: nowrap;
-        text-align: left;
+    .table-responsive tr.member-row td.checkbox-cell input {
+        width: 22px;
+        height: 22px;
+    }
+    .table-responsive tr.member-row td.name-cell {
+        flex: 1 1 auto;
+        min-width: 0;
         font-weight: 600;
-        color: var(--text-muted);
-        font-size: 0.85rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .table-responsive tr.member-row td.type-cell {
+        flex: 0 0 auto;
     }
 
-    /* Special styling for checkbox row on mobile */
-    .table-responsive td.checkbox-cell {
-        padding-left: 1rem;
-        justify-content: flex-start;
-        background: #f8fafc;
-        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-        margin: -0.5rem -0.5rem 0.5rem -0.5rem;
-        border-bottom: 1px solid var(--border);
+    /* タイプはスイッチではなくチップ全体をタップして切替 */
+    .table-responsive .type-cell .toggle-switch {
+        gap: 0;
     }
-    
-    .table-responsive td.checkbox-cell::before {
+    .table-responsive .type-cell .switch-track {
         display: none;
+    }
+    .table-responsive .type-cell .driver-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 5rem;
+        min-height: 34px;
+        padding: 0 0.6rem;
+        border-radius: 17px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    .table-responsive .type-cell .driver-label.badge-driver {
+        border: 1px solid #86efac;
+    }
+    .table-responsive .type-cell .driver-label.badge-passenger {
+        border: 1px solid var(--border);
     }
 
     .table-responsive tr.section-row,
     .table-responsive tr.empty-row {
-        padding: 0;
-        margin-bottom: 0.5rem;
+        border: none;
+        background: transparent;
+        margin-bottom: 0.35rem;
     }
     .table-responsive tr.section-row td,
     .table-responsive tr.empty-row td {
-        padding: 0.6rem 1rem;
-        display: block;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-sm);
         text-align: left;
-        min-height: 0;
     }
-    .table-responsive tr.section-row td::before,
-    .table-responsive tr.empty-row td::before {
+
+    /* 名前とタイプ以外は非表示 */
+    .table-responsive td.family-cell,
+    .table-responsive td.nickname-cell,
+    .table-responsive td.notes-cell,
+    .table-responsive td.count-val {
         display: none;
     }
 
-    /* Simple mobile view: Only show Name and Type */
-    .table-responsive td[data-label="ふりがな"],
-    .table-responsive td[data-label="家族ID"],
-    .table-responsive td[data-label="ニックネーム"],
-    .table-responsive td[data-label="備考"],
-    .table-responsive td[data-label="参加回数"] {
+    .mode-select span {
         display: none;
+    }
+    .sticky-actions .mode-select select {
+        min-width: 0;
+        max-width: 9.5rem;
+        padding: 0.5rem 0.6rem;
     }
 }
 </style>
@@ -206,7 +224,7 @@
     <?php endif; ?>
 
     <form action="?action=select_members" method="post" id="select-members-form">
-        <div class="mb-3" style="display: flex; gap: 8px; align-items: center;">
+        <div class="mb-3" style="display: flex; gap: 8px; align-items: center; margin-bottom: 0.6rem;">
             <input type="search" id="member-search" class="form-control" placeholder="名前、かなの一部から検索" style="flex: 1; margin-bottom: 0;">
             <button type="button" onclick="clearSearch()" style="flex-shrink: 0; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; color: var(--text-muted); font-size: 1rem; cursor: pointer; line-height: 1; transition: background 0.15s, color 0.15s;" onmouseover="this.style.background='#f3f4f6';this.style.color='var(--text)'" onmouseout="this.style.background='#fff';this.style.color='var(--text-muted)'">×</button>
         </div>
@@ -248,13 +266,13 @@
                             <span class="member-name <?= $m['gender'] === 'M' ? 'man' : 'woman' ?>"><?= htmlspecialchars($m['name']) ?></span>
                         </td>
                         <td class="furigana-cell" data-label="ふりがな"><?= htmlspecialchars($m['furigana'] ?? '') ?></td>
-                        <td data-label="家族ID"><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
-                        <td data-label="タイプ">
+                        <td class="family-cell" data-label="家族ID"><span class="family-tag"><?= htmlspecialchars($m['family_id']) ?></span></td>
+                        <td class="type-cell" data-label="タイプ">
                             <label class="toggle-switch" onclick="event.stopPropagation();">
                                 <input type="checkbox" name="is_driver[<?= htmlspecialchars($m['id']) ?>]" value="1" <?= $m['is_driver'] === '1' ? 'checked' : '' ?> class="driver-checkbox" role="switch">
                                 <span class="switch-track"></span>
                                 <span class="driver-label <?= $m['is_driver'] === '1' ? 'badge-driver' : 'badge-passenger' ?>">
-                                    <?= $m['is_driver'] === '1' ? '🚗 ドライバー' : '👤 乗客' ?>
+                                    <?= $m['is_driver'] === '1' ? '🚗 運転' : '👤 乗客' ?>
                                 </span>
                             </label>
                         </td>
@@ -417,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const badge = this.closest('label').querySelector('.driver-label');
             if (this.checked) {
                 badge.className = 'driver-label badge-driver';
-                badge.innerHTML = '🚗 ドライバー';
+                badge.innerHTML = '🚗 運転';
             } else {
                 badge.className = 'driver-label badge-passenger';
                 badge.innerHTML = '👤 乗客';
