@@ -32,9 +32,6 @@ class PairingEditor {
             if (!$isWalk) {
                 // 手動調整用の空グループは履歴に残さない。
                 if (count($resolved) === 0) continue;
-                if (count($resolved) > 4) {
-                    throw new InvalidArgumentException('車の人数は最大4人にしてください。');
-                }
                 if (!array_filter($resolved, fn($p) => $p['is_driver'] === '1')) {
                     throw new InvalidArgumentException('各車にドライバーが必要です。');
                 }

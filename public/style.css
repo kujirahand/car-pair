@@ -468,3 +468,9 @@ ul, ol { list-style: none; }
         width: 100%;
     }
 }
+
+/* 車単位の固定 */
+.group-lock { margin: 0.5rem 1rem 1rem; }
+.car-card.is-locked { border-color: #16a34a; }
+.car-card.is-locked .passenger-list li { cursor: default; }
+.group-lock[aria-pressed="true"] { color: #15803d; border-color: #16a34a; }

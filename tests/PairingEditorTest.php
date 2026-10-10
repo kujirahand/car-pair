@@ -60,9 +60,10 @@ class PairingEditorTest {
             $this->rejected($data, $this->members());
         }
     }
-    public function testCarCapacityAndDriverRequired() {
+    public function testManualCapacityUnlimitedAndDriverRequired() {
         $m = $this->members();
-        foreach ([['cars' => [$m], 'walk' => []], ['cars' => [[$m[1], $m[3]]], 'walk' => [$m[0], $m[2], $m[4]]]] as $data) $this->rejected($data, $m);
+        $this->assert(count(PairingEditor::validate(['cars' => [$m], 'walk' => []], $m)['cars'][0]) === 5, '手動調整は5人以上でも保存できること');
+        $this->rejected(['cars' => [[$m[1], $m[3]]], 'walk' => [$m[0], $m[2], $m[4]]], $m);
     }
     public function testManualEditingCanSplitFamilyBetweenCarsAndWalk() {
         $m = $this->members();
@@ -120,7 +121,7 @@ $_SESSION = ['logged_in' => true, 'selected_members' => ['1', '2', '3', '4', '5'
 session_write_close();
 $_SERVER['REQUEST_METHOD'] = 'POST';
 $_GET = ['action' => 'pairing'];
-$_POST = ['decide' => '', 'pairing_result' => file_get_contents(__DIR__ . '/payload.json')];
+$_POST = [(is_file(__DIR__ . '/retry') ? 'retry' : 'decide') => '', 'pairing_result' => file_get_contents(__DIR__ . '/payload.json')];
 register_shutdown_function(function () {
     file_put_contents(__DIR__ . '/session.json', json_encode($_SESSION));
 });
@@ -145,6 +146,20 @@ PHP
             foreach ($csv->getAll() as $p) $this->assert($p['participation_count'] === '0', '不正な変更で参加回数を増やさないこと');
             $session = json_decode(file_get_contents("$dir/session.json"), true);
             $this->assert(isset($session['selected_members']), '不正な保存で参加者選択を失わないこと');
+
+            $retry = $data;
+            $retry['locked'] = ['2'];
+            file_put_contents("$dir/retry", '1');
+            file_put_contents("$dir/payload.json", json_encode($retry));
+            $output = [];
+            exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg("$dir/run.php") . ' 2>&1', $output, $status);
+            $html = implode("\n", $output);
+            $this->assert($status === 0 && preg_match('/id="pairing-result" name="pairing_result" value="([^"]+)"/', $html, $matches), '再生成後の候補を表示すること');
+            $candidate = json_decode(html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8'), true);
+            $this->assert(array_column($candidate['cars'][2], 'id') === ['3', '2', '4'] && $candidate['locked'] === ['2'], 'POSTで固定した車名・メンバーを保持すること');
+            $this->assert((new HistoryManager("$dir/data/default/history.json"))->getHistory() === [], '再生成では履歴を保存しないこと');
+            foreach ($csv->getAll() as $p) $this->assert($p['participation_count'] === '0', '再生成では参加回数を増やさないこと');
+            unlink("$dir/retry");
 
             file_put_contents("$dir/payload.json", json_encode($data));
             $output = [];

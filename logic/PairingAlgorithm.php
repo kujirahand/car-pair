@@ -23,6 +23,43 @@ class PairingAlgorithm {
         return is_string($mode) && isset(self::getModes()[$mode]) ? $mode : self::MODE_FAMILY;
     }
 
+    // 固定した車のメンバーを除外し、残りだけで候補を生成する。
+    public function regenerate($members, $history, $mode, $data) {
+        require_once __DIR__ . '/PairingEditor.php';
+        PairingEditor::validate($data, $members);
+        $locked = $data['locked'] ?? [];
+        if (!is_array($locked) || !array_is_list($locked)) {
+            throw new InvalidArgumentException('固定グループの形式が正しくありません。');
+        }
+        $byId = array_column($members, null, 'id');
+        $fixed = [];
+        $excluded = [];
+        foreach ($locked as $index) {
+            if ((!is_int($index) && !is_string($index)) || !ctype_digit((string)$index) ||
+                !isset($data['cars'][(int)$index]) || empty($data['cars'][(int)$index])) {
+                throw new InvalidArgumentException('固定する車が見つかりません。');
+            }
+            $fixed[(int)$index] = array_map(fn($p) => $byId[$p['id']], $data['cars'][(int)$index]);
+            foreach ($fixed[(int)$index] as $p) $excluded[$p['id']] = true;
+        }
+        $remaining = array_values(array_filter($members, fn($p) => !isset($excluded[$p['id']])));
+        $result = $remaining ? $this->generate($remaining, $history, $mode) :
+            ['success' => true, 'cars' => [], 'walk' => [], 'score' => 0];
+        if (isset($result['error'])) return $result;
+        $cars = [];
+        $pool = $result['cars'];
+        $lastFixed = $fixed ? max(array_keys($fixed)) : -1;
+        for ($i = 0; $pool || $i <= $lastFixed; $i++) {
+            $cars[] = $fixed[$i] ?? ($pool ? array_shift($pool) : []);
+        }
+        $result['cars'] = $cars;
+        $result['locked'] = array_map('strval', array_keys($fixed));
+        $scored = $result;
+        $scored['cars'] = array_values(array_filter($cars));
+        $result['score'] = $this->calculateHistoryScore($scored, $history, self::normalizeMode($mode));
+        return $result;
+    }
+
     public function generate($members, $history, $mode = self::MODE_FAMILY) {
         $mode = self::normalizeMode($mode);
         $families = [];

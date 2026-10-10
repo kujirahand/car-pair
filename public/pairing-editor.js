@@ -13,7 +13,6 @@
     function validate(data, final = true) {
         for (const [index, group] of [...data.cars, data.walk].entries()) {
             if (index < data.cars.length) {
-                if (group.length > 4) return '車の人数は最大4人にしてください。';
                 if (!group.length || !final) continue;
                 if (!group.some(p => p.is_driver === '1')) return '各車にドライバーが必要です。ドライバーを移すか、メンバーを徒歩へ移してください。';
                 if (group.length === 2 && group[0].gender !== group[1].gender && group[0].family_id !== group[1].family_id) {
@@ -26,7 +25,7 @@
 
     // 候補を複製してから変更する。失敗した操作で現在の配置を壊さない。
     function edit(data, sourceId, targetGroup) {
-        const next = {cars: data.cars.map(g => g.slice()), walk: data.walk.slice()};
+        const next = {cars: data.cars.map(g => g.slice()), walk: data.walk.slice(), locked: (data.locked || []).slice()};
         const groups = [...next.cars, next.walk];
         const locate = id => {
             for (const group of groups) {
@@ -39,6 +38,9 @@
         if (!source) return {error: 'メンバーが見つかりません。'};
         const group = targetGroup === 'walk' ? next.walk : next.cars[Number(targetGroup)];
         if (!group) return {error: '移動先が見つかりません。'};
+        if (next.locked.some(index => next.cars[Number(index)] === source.group || next.cars[Number(index)] === group)) {
+            return {error: '固定中の車は変更できません。固定解除してください。'};
+        }
         if (group !== source.group) group.push(...source.group.splice(source.index, 1));
         const error = validate(next, false);
         if (error) return {error};
@@ -53,6 +55,7 @@
     const input = document.getElementById('pairing-result');
     const message = document.getElementById('pairing-edit-message');
     let data = JSON.parse(input.value);
+    data.locked = data.locked || [];
     let selected = null;
     const rows = new Map([...root.querySelectorAll('[data-member-id]')].map(row => [row.dataset.memberId, row]));
 
@@ -65,19 +68,38 @@
         root.querySelectorAll('.drop-target').forEach(card => card.classList.remove('drop-target'));
     }
     function select(row) {
+        if (data.locked.includes(row.closest('[data-group]').dataset.group)) {
+            message.textContent = '固定中の車は変更できません。固定解除してください。';
+            return;
+        }
         clearSelection();
         selected = row.dataset.memberId;
         row.classList.add('is-selected');
         row.setAttribute('aria-pressed', 'true');
         message.textContent = '移動先のグループを選んでください。Escで取り消せます。';
     }
+    function renderLocks() {
+        root.querySelectorAll('[data-group]').forEach(card => {
+            const locked = data.locked.includes(card.dataset.group);
+            card.classList[locked ? 'add' : 'remove']('is-locked');
+            const button = card.querySelector('.group-lock');
+            if (button) {
+                button.textContent = locked ? '固定解除' : '決定';
+                button.setAttribute('aria-pressed', String(locked));
+                button.disabled = !data.cars[Number(card.dataset.group)].length;
+            }
+            card.querySelectorAll('[data-member-id]').forEach(row => row.setAttribute('draggable', String(!locked)));
+        });
+        input.value = JSON.stringify(data);
+    }
+    renderLocks();
     function render() {
         root.querySelectorAll('[data-group]').forEach(card => {
             const group = card.dataset.group === 'walk' ? data.walk : data.cars[Number(card.dataset.group)];
             group.forEach(p => card.querySelector('.passenger-list').appendChild(rows.get(String(p.id))));
             card.querySelector('.badge').textContent = group.length + '人';
         });
-        input.value = JSON.stringify(data);
+        renderLocks();
         document.getElementById('pairing-score').textContent = '手動調整済み（履歴スコアは未計算）';
     }
     function apply(target) {
@@ -115,6 +137,10 @@
         header.appendChild(badge);
         card.appendChild(header);
         card.appendChild(list);
+        const lock = document.createElement('button');
+        lock.type = 'button';
+        lock.className = 'btn btn-outline group-lock';
+        card.appendChild(lock);
         root.insertBefore(card, root.querySelector('[data-group="walk"]'));
         render();
         message.textContent = '空グループを追加しました。ここへメンバーを移動できます。';
@@ -124,7 +150,14 @@
     root.addEventListener('dragstart', event => {
         const row = event.target.closest('[data-member-id]');
         if (!row) return;
+        if (data.locked.includes(row.closest('[data-group]').dataset.group)) {
+            event.preventDefault();
+            clearSelection();
+            message.textContent = '固定中の車は変更できません。固定解除してください。';
+            return;
+        }
         select(row);
+        if (selected === null) { event.preventDefault(); return; }
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', selected);
     });
@@ -145,6 +178,21 @@
         clearSelection();
     });
     root.addEventListener('click', event => {
+        const lock = event.target.closest('.group-lock');
+        if (lock) {
+            const index = lock.closest('[data-group]').dataset.group;
+            const isLocked = data.locked.includes(index);
+            if (!isLocked) {
+                const group = data.cars[Number(index)];
+                const error = !group.length ? '空の車は固定できません。' : validate({cars: [group], walk: []});
+                if (error) { message.textContent = error; return; }
+            }
+            data.locked = isLocked ? data.locked.filter(i => i !== index) : [...data.locked, index];
+            clearSelection();
+            renderLocks();
+            message.textContent = isLocked ? '固定を解除しました。' : 'この車を固定しました。組合せをやり直してもメンバーは変わりません。';
+            return;
+        }
         const row = event.target.closest('[data-member-id]');
         if (selected === null) {
             if (row) select(row);
