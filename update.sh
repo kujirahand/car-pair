@@ -11,7 +11,7 @@ if [ "$(git rev-parse --show-toplevel)" != "$script_dir" ]; then
     exit 1
 fi
 
-lock_dir=$(git rev-parse --git-path car-pair-update.lock)
+lock_dir="$(git rev-parse --git-dir)/car-pair-update.lock"
 if ! mkdir "$lock_dir" 2>/dev/null; then
     echo '別の更新処理が実行中です。' >&2
     exit 1

@@ -25,7 +25,7 @@ $contentHtml = ob_get_clean();
         <?php if ($auth->isLoggedIn()): ?>
         <nav class="navbar">
             <a href="?action=select_members" class="nav-brand">
-                🚗 Car Pairing v2.1
+                🚗 Car Pairing v2.2
                 <span class="nav-workspace-name"><?= htmlspecialchars($currentWorkspaceName) ?></span>
             </a>
             <button type="button" class="menu-toggle" id="menu-toggle" aria-label="メニュー" aria-expanded="false" aria-controls="nav-menu">☰</button>
