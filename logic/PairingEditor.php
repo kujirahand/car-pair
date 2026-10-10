@@ -1,9 +1,8 @@
 <?php
-require_once __DIR__ . '/PairingAlgorithm.php';
 
 class PairingEditor {
     // ブラウザからは配置だけを受け取り、氏名・当日のドライバー指定は名簿から復元する。
-    public static function validate($data, array $members, $mode) {
+    public static function validate($data, array $members) {
         if (!is_array($data) || !isset($data['cars'], $data['walk']) ||
             !is_array($data['cars']) || !array_is_list($data['cars']) ||
             !is_array($data['walk']) || !array_is_list($data['walk'])) {
@@ -12,7 +11,6 @@ class PairingEditor {
         $byId = [];
         foreach ($members as $member) $byId[(string)$member['id']] = $member;
         $seen = [];
-        $familyGroups = [];
         $result = ['cars' => [], 'walk' => []];
         $groups = array_merge($data['cars'], [$data['walk']]);
         foreach ($groups as $index => $group) {
@@ -29,18 +27,13 @@ class PairingEditor {
                 $id = (string)$id;
                 $seen[$id] = true;
                 $member = $byId[$id];
-                if (PairingAlgorithm::normalizeMode($mode) === PairingAlgorithm::MODE_FAMILY) {
-                    $family = (string)$member['family_id'];
-                    if (isset($familyGroups[$family]) && $familyGroups[$family] !== $index) {
-                        throw new InvalidArgumentException('「家族を一緒に」では家族を別の組に分けられません。');
-                    }
-                    $familyGroups[$family] = $index;
-                }
                 $resolved[] = $member;
             }
             if (!$isWalk) {
-                if (count($resolved) === 0 || count($resolved) > 4) {
-                    throw new InvalidArgumentException('車の人数は1〜4人にしてください。');
+                // 手動調整用の空グループは履歴に残さない。
+                if (count($resolved) === 0) continue;
+                if (count($resolved) > 4) {
+                    throw new InvalidArgumentException('車の人数は最大4人にしてください。');
                 }
                 if (!array_filter($resolved, fn($p) => $p['is_driver'] === '1')) {
                     throw new InvalidArgumentException('各車にドライバーが必要です。');

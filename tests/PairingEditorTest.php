@@ -14,21 +14,21 @@ class PairingEditorTest {
     private function assert($condition, $message) {
         if (!$condition) throw new Exception($message);
     }
-    private function rejected($data, $members, $mode = 'family') {
+    private function rejected($data, $members) {
         try {
-            PairingEditor::validate($data, $members, $mode);
+            PairingEditor::validate($data, $members);
         } catch (InvalidArgumentException $e) {
             return;
         }
         throw new Exception('不正な配置が受理されました');
     }
-    public function testSwappedArrangementSavedWithCanonicalMembers() {
+    public function testEditedArrangementSavedWithCanonicalMembers() {
         $m = $this->members();
         $data = ['cars' => [[$m[3], $m[0]], [$m[2], $m[1]]], 'walk' => [$m[4]]];
         $data['cars'][0][1]['name'] = '改ざん';
         $data['cars'][0][1]['is_driver'] = '0';
-        $result = PairingEditor::validate($data, $m, 'family');
-        $this->assert(array_column($result['cars'][0], 'id') === ['1', '4'], '入れ替え後の車にドライバーが先頭で保存されること');
+        $result = PairingEditor::validate($data, $m);
+        $this->assert(array_column($result['cars'][0], 'id') === ['1', '4'], '調整後の車にドライバーが先頭で保存されること');
         $this->assert($result['cars'][0][0] === $m[0], '名前とドライバー指定をサーバー側から復元すること');
         $file = tempnam(sys_get_temp_dir(), 'pair-edit');
         $csvFile = tempnam(sys_get_temp_dir(), 'pair-list');
@@ -62,29 +62,35 @@ class PairingEditorTest {
     }
     public function testCarCapacityAndDriverRequired() {
         $m = $this->members();
-        foreach ([['cars' => [$m], 'walk' => []], ['cars' => [[$m[1], $m[3]]], 'walk' => [$m[0], $m[2], $m[4]]],
-            ['cars' => [[]], 'walk' => $m]] as $data) $this->rejected($data, $m);
+        foreach ([['cars' => [$m], 'walk' => []], ['cars' => [[$m[1], $m[3]]], 'walk' => [$m[0], $m[2], $m[4]]]] as $data) $this->rejected($data, $m);
     }
-    public function testFamilyModeAndOtherModes() {
+    public function testManualEditingCanSplitFamilyBetweenCarsAndWalk() {
         $m = $this->members();
         $m[1]['family_id'] = $m[0]['family_id'];
         $data = ['cars' => [[$m[0], $m[3]], [$m[2], $m[1]]], 'walk' => [$m[4]]];
-        $this->rejected($data, $m);
-        foreach (['driver', 'random'] as $mode) $this->assert(PairingEditor::validate($data, $m, $mode) === $data, '家族を分けられるモードで有効な入れ替えが拒否されています');
+        $this->assert(PairingEditor::validate($data, $m) === $data, '手動調整では家族を別の車に分けられること');
         $data = ['cars' => [[$m[0]], [$m[2], $m[3]]], 'walk' => [$m[1], $m[4]]];
-        $this->rejected($data, $m);
+        $this->assert(PairingEditor::validate($data, $m) === $data, '手動調整では家族を車と徒歩に分けられること');
     }
-    public function testDifferentFamilyMixedGenderPairRejectedInEveryMode() {
+    public function testDifferentFamilyMixedGenderPairRejectedOnSave() {
         $m = [$this->person(1, true), $this->person(2, false, null, 'F')];
-        foreach (['family', 'driver', 'random'] as $mode) $this->rejected(['cars' => [$m], 'walk' => []], $m, $mode);
+        $this->rejected(['cars' => [$m], 'walk' => []], $m);
         $m[1]['family_id'] = $m[0]['family_id'];
-        $this->assert(PairingEditor::validate(['cars' => [$m], 'walk' => []], $m, 'family')['cars'][0] === $m, '同じ家族の男女2人は許可すること');
+        $this->assert(PairingEditor::validate(['cars' => [$m], 'walk' => []], $m)['cars'][0] === $m, '同じ家族の男女2人は許可すること');
     }
     public function testWalkOnlyAndMultipleDriversFollowExistingAlgorithm() {
         $m = $this->members();
-        $this->assert(PairingEditor::validate(['cars' => [], 'walk' => $m], $m, 'family')['walk'] === $m, '徒歩だけの候補も保存できること');
+        $this->assert(PairingEditor::validate(['cars' => [], 'walk' => $m], $m)['walk'] === $m, '徒歩だけの候補も保存できること');
         $data = ['cars' => [[$m[0], $m[2], $m[1], $m[3]]], 'walk' => [$m[4]]];
-        $this->assert(count(PairingEditor::validate($data, $m, 'family')['cars'][0]) === 4, '既存の複数ドライバーの候補を許可すること');
+        $this->assert(count(PairingEditor::validate($data, $m)['cars'][0]) === 4, '既存の複数ドライバーの候補を許可すること');
+    }
+    public function testEmptyGroupsOmittedAndNewGroupSaved() {
+        $m = $this->members();
+        $data = ['cars' => [[], [$m[0], $m[1]], [], [$m[2]], []], 'walk' => [$m[3], $m[4]]];
+        $saved = PairingEditor::validate($data, $m);
+        $this->assert($saved['cars'] === [[$m[0], $m[1]], [$m[2]]], '空のグループを除外し、新しい車を保存すること');
+        $this->assert($saved['walk'] === $data['walk'], '徒歩の参加者を保持すること');
+        $this->assert(PairingEditor::validate(['cars' => [[], []], 'walk' => $m], $m)['cars'] === [], '全員徒歩・空の車のみでも保存すること');
     }
     public function testJavaScriptEditingAndEvents() {
         exec('node ' . escapeshellarg(__DIR__ . '/pairing-editor.test.cjs') . ' 2>&1', $output, $status);
@@ -122,12 +128,13 @@ require __DIR__ . '/index.php';
 PHP
             );
             $m = $this->members();
+            $m[1]['family_id'] = $m[0]['family_id']; // 家族モードから手動で別の車へ移した状態
             $csv = new CsvManager("$dir/data/default/list.csv");
             foreach ($m as $p) {
                 $p['is_driver'] = '0'; // 当日の指定がマスターより優先されることも検証
                 $csv->add($p);
             }
-            $data = ['cars' => [[$m[0], $m[3]], [$m[2], $m[1]]], 'walk' => [$m[4]]];
+            $data = ['cars' => [[$m[0]], [], [$m[2], $m[1], $m[3]], []], 'walk' => [$m[4]]];
             $invalid = $data;
             $invalid['cars'][0][0] = $m[1];
             file_put_contents("$dir/payload.json", json_encode($invalid));
@@ -144,7 +151,9 @@ PHP
             exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg("$dir/run.php") . ' 2>&1', $output, $status);
             $this->assert($status === 0 && $output === [], '有効な保存後は履歴画面に遷移すること: ' . implode("\n", $output));
             $saved = (new HistoryManager("$dir/data/default/history.json"))->getHistory()[0];
-            $this->assert(array_column($saved['cars'][0], 'id') === ['1', '4'] && $saved['walk'][0]['id'] === '5', '調整後の配置を保存すること');
+            $this->assert(array_column($saved['cars'][0], 'id') === ['1'] &&
+                array_column($saved['cars'][1], 'id') === ['3', '2', '4'] && count($saved['cars']) === 2 &&
+                $saved['walk'][0]['id'] === '5', '家族を分けた移動後の配置を保存し、空グループを除外すること');
             $this->assert($saved['cars'][0][0]['is_driver'] === '1', '当日のドライバー指定が保存されること');
             foreach ($csv->getAll() as $p) $this->assert($p['participation_count'] === '1', '有効な保存で全員の参加回数を1増やすこと');
             $session = json_decode(file_get_contents("$dir/session.json"), true);

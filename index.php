@@ -225,14 +225,13 @@ if ($action === 'pairing') {
     }
     unset($m);
     $historyManager = new HistoryManager($workspacePaths['history']);
-    $pairingMode = PairingAlgorithm::normalizeMode($_SESSION['pairing_mode'] ?? null);
     $editError = '';
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['decide'])) {
         try {
             $pairingJson = $_POST['pairing_result'] ?? '';
             $data = is_string($pairingJson) ? json_decode($pairingJson, true) : null;
-            $approved = PairingEditor::validate($data, $members, $pairingMode);
+            $approved = PairingEditor::validate($data, $members);
             $historyManager->addHistory($approved);
             $csv->incrementParticipationCounts($selectedIds);
             unset($_SESSION['selected_members']);

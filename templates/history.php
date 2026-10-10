@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/../logic/GroupLabel.php'; ?>
 <div class="page-header justify-between">
     <h1 class="page-title">📜 ご利用履歴</h1>
     <a href="?action=select_members" class="btn btn-primary">新しく配車する</a>
@@ -15,11 +16,10 @@
         <p class="text-muted mb-4">保存日時: <?= htmlspecialchars($latest['date']) ?></p>
 
         <div class="cars-grid">
-            <?php $carIndex = 1; ?>
-            <?php foreach ($latest['cars'] as $car): ?>
+            <?php foreach ($latest['cars'] as $carIndex => $car): ?>
             <div class="car-card">
                 <div class="car-header">
-                    <h3>🚗 車 <?= $carIndex++ ?></h3>
+                    <h3>🚗 <?= GroupLabel::car($carIndex) ?></h3>
                     <span class="badge"><?= count($car) ?>人</span>
                 </div>
                 <ul class="passenger-list">
@@ -27,8 +27,8 @@
                     <li class="<?= $p['is_driver'] === '1' ? 'is-driver' : 'is-passenger' ?>">
                         <div class="passenger-info">
                             <strong><?= htmlspecialchars($p['name']) ?></strong>
+                            <?php include __DIR__ . '/family_badge.php'; ?>
                             <div class="passenger-meta">
-                                <span class="family-tag float"><?= htmlspecialchars($p['family_id']) ?></span>
                                 <?= $p['gender'] === 'M' ? '<span class="gender-m">♂</span>' : '<span class="gender-f">♀</span>' ?>
                             </div>
                         </div>
@@ -52,8 +52,8 @@
                     <li class="is-passenger">
                         <div class="passenger-info">
                             <strong><?= htmlspecialchars($p['name']) ?></strong>
+                            <?php include __DIR__ . '/family_badge.php'; ?>
                             <div class="passenger-meta">
-                                <span class="family-tag float"><?= htmlspecialchars($p['family_id']) ?></span>
                                 <?= $p['gender'] === 'M' ? '<span class="gender-m">♂</span>' : '<span class="gender-f">♀</span>' ?>
                             </div>
                         </div>
@@ -78,18 +78,21 @@
                     <ul style="list-style-type: disc; margin-left: 1.5rem; color: var(--text-main); font-size: 0.95rem;">
                         <?php foreach ($history['cars'] as $i => $car): ?>
                             <li style="margin-bottom: 0.5rem;">
-                                <strong>車 <?= $i + 1 ?>:</strong> 
-                                <?= implode('、', array_map(function($p) {
-                                    return htmlspecialchars($p['name']) . ($p['is_driver'] === '1' ? ' (🔑)' : '');
-                                }, $car)) ?>
+                                <strong><?= GroupLabel::car($i) ?>:</strong>
+                                <?php foreach ($car as $memberIndex => $p): ?>
+                                    <?= $memberIndex > 0 ? '、' : '' ?><?= htmlspecialchars($p['name']) ?>
+                                    <?php include __DIR__ . '/family_badge.php'; ?>
+                                    <?= $p['is_driver'] === '1' ? ' (🔑)' : '' ?>
+                                <?php endforeach; ?>
                             </li>
                         <?php endforeach; ?>
                         <?php if (!empty($history['walk'])): ?>
                             <li style="margin-bottom: 0.5rem;">
                                 <strong>🚶 徒歩:</strong> 
-                                <?= implode('、', array_map(function($p) {
-                                    return htmlspecialchars($p['name']);
-                                }, $history['walk'])) ?>
+                                <?php foreach ($history['walk'] as $memberIndex => $p): ?>
+                                    <?= $memberIndex > 0 ? '、' : '' ?><?= htmlspecialchars($p['name']) ?>
+                                    <?php include __DIR__ . '/family_badge.php'; ?>
+                                <?php endforeach; ?>
                             </li>
                         <?php endif; ?>
                     </ul>

@@ -1,23 +1,23 @@
 (function () {
     'use strict';
 
-    function validate(data, mode) {
-        const families = new Map();
+    function carLabel(index) {
+        let label = '';
+        do {
+            label = String.fromCharCode(65 + index % 26) + label;
+            index = Math.floor(index / 26) - 1;
+        } while (index >= 0);
+        return '車' + label;
+    }
+
+    function validate(data, final = true) {
         for (const [index, group] of [...data.cars, data.walk].entries()) {
             if (index < data.cars.length) {
-                if (!group.length || group.length > 4) return '車の人数は1〜4人にしてください。';
-                if (!group.some(p => p.is_driver === '1')) return '各車にドライバーが必要です。';
+                if (group.length > 4) return '車の人数は最大4人にしてください。';
+                if (!group.length || !final) continue;
+                if (!group.some(p => p.is_driver === '1')) return '各車にドライバーが必要です。ドライバーを移すか、メンバーを徒歩へ移してください。';
                 if (group.length === 2 && group[0].gender !== group[1].gender && group[0].family_id !== group[1].family_id) {
                     return '家族が異なる男女を2人だけの車にはできません。';
-                }
-            }
-            if (mode === 'family') {
-                for (const p of group) {
-                    const family = String(p.family_id);
-                    if (families.has(family) && families.get(family) !== index) {
-                        return '「家族を一緒に」では家族を別の組に分けられません。';
-                    }
-                    families.set(family, index);
                 }
             }
         }
@@ -25,7 +25,7 @@
     }
 
     // 候補を複製してから変更する。失敗した操作で現在の配置を壊さない。
-    function edit(data, sourceId, targetId, targetGroup, mode) {
+    function edit(data, sourceId, targetGroup) {
         const next = {cars: data.cars.map(g => g.slice()), walk: data.walk.slice()};
         const groups = [...next.cars, next.walk];
         const locate = id => {
@@ -37,22 +37,16 @@
         };
         const source = locate(sourceId);
         if (!source) return {error: 'メンバーが見つかりません。'};
-        if (targetId !== null) {
-            const target = locate(targetId);
-            if (!target) return {error: 'メンバーが見つかりません。'};
-            [source.group[source.index], target.group[target.index]] = [target.group[target.index], source.group[source.index]];
-        } else {
-            const group = targetGroup === 'walk' ? next.walk : next.cars[Number(targetGroup)];
-            if (!group) return {error: '移動先が見つかりません。'};
-            if (group !== source.group) group.push(...source.group.splice(source.index, 1));
-        }
-        const error = validate(next, mode);
+        const group = targetGroup === 'walk' ? next.walk : next.cars[Number(targetGroup)];
+        if (!group) return {error: '移動先が見つかりません。'};
+        if (group !== source.group) group.push(...source.group.splice(source.index, 1));
+        const error = validate(next, false);
         if (error) return {error};
         next.cars.forEach(g => g.sort((a, b) => Number(b.is_driver === '1') - Number(a.is_driver === '1')));
         return {data: next};
     }
 
-    if (typeof module !== 'undefined' && module.exports) module.exports = {validate, edit};
+    if (typeof module !== 'undefined' && module.exports) module.exports = {validate, edit, carLabel};
     if (typeof document === 'undefined') return;
     const root = document.getElementById('pairing-editor');
     if (!root) return;
@@ -75,19 +69,9 @@
         selected = row.dataset.memberId;
         row.classList.add('is-selected');
         row.setAttribute('aria-pressed', 'true');
-        message.textContent = '入れ替える名前、または移動先の枠を選んでください。Escで取り消せます。';
+        message.textContent = '移動先のグループを選んでください。Escで取り消せます。';
     }
-    function apply(target) {
-        const row = target.closest('[data-member-id]');
-        const card = target.closest('[data-group]');
-        if (!card || selected === null) return;
-        const outcome = edit(data, selected, row ? row.dataset.memberId : null, card.dataset.group, root.dataset.mode);
-        clearSelection();
-        if (outcome.error) {
-            message.textContent = outcome.error + ' 変更を取り消しました。';
-            return;
-        }
-        data = outcome.data;
+    function render() {
         root.querySelectorAll('[data-group]').forEach(card => {
             const group = card.dataset.group === 'walk' ? data.walk : data.cars[Number(card.dataset.group)];
             group.forEach(p => card.querySelector('.passenger-list').appendChild(rows.get(String(p.id))));
@@ -95,8 +79,48 @@
         });
         input.value = JSON.stringify(data);
         document.getElementById('pairing-score').textContent = '手動調整済み（履歴スコアは未計算）';
-        message.textContent = '組合せを変更しました。「この組合せで決定」で保存できます。';
     }
+    function apply(target) {
+        const card = target.closest('[data-group]');
+        if (!card || selected === null) return;
+        const outcome = edit(data, selected, card.dataset.group);
+        clearSelection();
+        if (outcome.error) {
+            message.textContent = outcome.error + ' 変更を取り消しました。';
+            return;
+        }
+        data = outcome.data;
+        render();
+        const warning = validate(data);
+        message.textContent = warning ? '移動しました。決定前に調整してください：' + warning :
+            '組合せを変更しました。「この組合せで決定」で保存できます。';
+    }
+    document.getElementById('add-pairing-group').addEventListener('click', () => {
+        const index = data.cars.length;
+        data.cars.push([]);
+        const card = document.createElement('div');
+        card.className = 'car-card';
+        card.dataset.group = String(index);
+        card.tabIndex = 0;
+        card.setAttribute('aria-label', carLabel(index) + 'に移動');
+        const header = document.createElement('div');
+        header.className = 'car-header';
+        const title = document.createElement('h3');
+        title.textContent = '🚗 ' + carLabel(index);
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        const list = document.createElement('ul');
+        list.className = 'passenger-list';
+        header.appendChild(title);
+        header.appendChild(badge);
+        card.appendChild(header);
+        card.appendChild(list);
+        root.insertBefore(card, root.querySelector('[data-group="walk"]'));
+        render();
+        message.textContent = '空グループを追加しました。ここへメンバーを移動できます。';
+        // 選択中のメンバーは保持し、タップでもすぐ新しい枠へ移動できるようにする。
+        card.focus();
+    });
     root.addEventListener('dragstart', event => {
         const row = event.target.closest('[data-member-id]');
         if (!row) return;
@@ -138,5 +162,12 @@
             event.target.click();
         }
     });
-    input.form.addEventListener('submit', () => { input.value = JSON.stringify(data); });
+    input.form.addEventListener('submit', event => {
+        input.value = JSON.stringify(data);
+        const error = validate(data);
+        if (error) {
+            event.preventDefault();
+            message.textContent = '保存できません：' + error;
+        }
+    });
 })();

@@ -235,6 +235,7 @@ ul, ol { list-style: none; }
 /* Badges & Tags */
 .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: var(--primary); color: white; }
 .family-tag { padding: 0.2rem 0.6rem; border-radius: 6px; background: #e5e7eb; color: #4b5563; font-size: 0.8rem; font-family: monospace; font-weight: bold; }
+.family-initial { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em; padding: 0 0.2em; border: 1px solid #94a3b8; border-radius: 5px; color: #475569; background: #f8fafc; font-size: 0.8rem; line-height: 1; flex-shrink: 0; vertical-align: middle; }
 .gender-m { color: #2563eb; font-weight: 600; }
 .gender-f { color: #db2777; font-weight: 600; }
 
