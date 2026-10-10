@@ -28,4 +28,20 @@ class FamilyLabelTest {
         $css = file_get_contents(__DIR__ . '/../public/style.css');
         $this->assert(preg_match('/\.family-initial \{[^}]*border: 1px[^}]*border-radius: 5px/s', $css) === 1, '角丸の枠で表示すること');
     }
+
+    public function testStableColorBasedOnFullFamilyId() {
+        $hue = FamilyLabel::hue('田中家');
+        $this->assert(FamilyLabel::hue('田中家') === $hue && FamilyLabel::hue(' 田中家 ') === $hue, '同じ家族は常に同じ色で表示すること');
+        $this->assert(FamilyLabel::hue('田辺家') !== $hue, '先頭文字が同じでも家族ID全体で色を決めること');
+        $this->assert(FamilyLabel::hue('鈴木家') !== $hue, '異なる家族を色分けすること');
+        foreach (['田中家', '鈴木家', '🚗家', '<script>"家', '', null] as $family) {
+            $color = FamilyLabel::hue($family);
+            $this->assert(is_int($color) && $color >= 0 && $color < 360, '色は安全な整数の色相にすること');
+        }
+        $html = $this->render('田中家');
+        $this->assert(strpos($html, "style=\"--family-hue: $hue\"") !== false, '家族の色をspanに設定すること');
+        $this->assert($this->render('田中家') === $html, '再描画しても色が変わらないこと');
+        $css = file_get_contents(__DIR__ . '/../public/style.css');
+        $this->assert(preg_match('/\.family-initial \{[^}]*border: 1px solid hsl\(var\(--family-hue[^}]*color: hsl\(var\(--family-hue[^}]*background: hsl\(var\(--family-hue/s', $css) === 1, '枠・文字・背景を同じ家族の色相で色分けすること');
+    }
 }
