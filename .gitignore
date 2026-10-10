@@ -3,7 +3,8 @@
 data/*.csv
 data/*.json
 **/.DS_Store
-
+data/config.php
+data/default/*
 
 
 
