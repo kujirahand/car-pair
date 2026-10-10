@@ -248,7 +248,16 @@ if ($action === 'pairing') {
     $pairingAlg = new PairingAlgorithm();
     $pairingMode = PairingAlgorithm::normalizeMode($_SESSION['pairing_mode'] ?? null);
     $pairingModeName = PairingAlgorithm::getModes()[$pairingMode];
-    $result = $pairingAlg->generate($members, $historyManager->getHistory(), $pairingMode);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['retry'])) {
+        try {
+            $payload = $_POST['pairing_result'] ?? '';
+            $result = $pairingAlg->regenerate($members, $historyManager->getHistory(), $pairingMode,
+                is_string($payload) ? json_decode($payload, true) : null);
+        } catch (InvalidArgumentException $e) {
+            $editError = $e->getMessage();
+        }
+    }
+    if (!isset($result)) $result = $pairingAlg->generate($members, $historyManager->getHistory(), $pairingMode);
     $executionTime = round(($endTime = microtime(true)) - $startTime, 4) * 1000; // in milliseconds
     $contentView = 'pairing.php';
     require __DIR__ . '/templates/layout.php';

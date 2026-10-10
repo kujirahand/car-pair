@@ -31,6 +31,14 @@ class PairingTemplateTest {
         $this->assert(substr_count($html, 'name="decide"') === 1, '決定ボタンは下部の1つだけであるべきです');
     }
 
+    public function testGroupLockButtonsAndRetryPost() {
+        $a = $this->person('甲', true);
+        $html = $this->render(['cars' => [[$a], [$a]], 'walk' => [], 'score' => 0, 'locked' => ['1']]);
+        $this->assert(substr_count($html, 'group-lock') === 2, '各車の下部に固定ボタンを配置すること');
+        $this->assert(strpos($html, 'name="retry"') !== false, '再生成を現在の配置とともにPOSTすること');
+        $this->assert(strpos($html, '&quot;locked&quot;:[&quot;1&quot;]') !== false, '再生成後の固定状態を渡すこと');
+    }
+
     public function testErrorHasNoDecideButton() {
         $html = $this->render(['error' => 'ドライバーがいません']);
         $this->assert(strpos($html, 'name="decide"') === false, 'エラー時に決定ボタンを出してはいけません');

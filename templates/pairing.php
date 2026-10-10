@@ -32,8 +32,9 @@ if (!isset($result['error'])) {
         <span class="float-right text-muted" style="float: right; font-size: 0.85em;">処理時間: <strong><?= $executionTime ?></strong> ms</span>
     </div>
 
-    <p class="pairing-help">名前を移動先のグループにドラッグしてください。別の名前の上にドロップしても、そのグループへ移動します。名前をタップしてから移動先をタップしても操作できます。手動調整では家族を分けられます。空グループに順にメンバーを追加し、決定までに各車へドライバーを配置してください。空のままのグループは保存されません。</p>
+    <p class="pairing-help">名前を移動先のグループにドラッグしてください。別の名前の上にドロップしても、そのグループへ移動します。名前をタップしてから移動先をタップしても操作できます。手動調整では家族を分けられます。車グループへの追加人数に上限はありません。空グループに順にメンバーを追加し、決定までに各車へドライバーを配置してください。空のままのグループは保存されません。</p>
     <button type="button" id="add-pairing-group" class="btn btn-outline mb-4">＋ 空グループを追加</button>
+    <p class="pairing-help">各車の［決定］でメンバーを固定すると、組合せをやり直してもその車は変わりません。［固定解除］で戻せます。</p>
     <p id="pairing-edit-message" role="status" aria-live="polite"></p>
     <div class="cars-grid" id="pairing-editor">
         <?php foreach ($result['cars'] as $carIndex => $car): ?>
@@ -53,6 +54,7 @@ if (!isset($result['error'])) {
                 </li>
                 <?php endforeach; ?>
             </ul>
+            <button type="button" class="btn btn-outline group-lock" aria-pressed="false">決定</button>
         </div>
         <?php endforeach; ?>
         
@@ -78,9 +80,9 @@ if (!isset($result['error'])) {
     <!-- Bottom Actions -->
     <div class="bottom-actions mt-5 text-center">
         <a href="?action=select_members" class="btn btn-outline btn-lg mr-3">↩️ メンバーを選び直す</a>
-        <a href="?action=pairing" class="btn btn-outline btn-lg mr-3">🔄 組合せをやり直す</a>
         <form action="?action=pairing" method="post" class="inline-block">
-            <input type="hidden" id="pairing-result" name="pairing_result" value="<?= htmlspecialchars(json_encode(['cars' => $result['cars'], 'walk' => $result['walk'] ?? []])) ?>">
+            <input type="hidden" id="pairing-result" name="pairing_result" value="<?= htmlspecialchars(json_encode(['cars' => $result['cars'], 'walk' => $result['walk'] ?? [], 'locked' => $result['locked'] ?? []])) ?>">
+            <button type="submit" name="retry" class="btn btn-outline btn-lg mr-3">🔄 組合せをやり直す</button>
             <button type="submit" name="decide" class="btn btn-success btn-lg shadow-hover">✅ この組合せで決定</button>
         </form>
     </div>
