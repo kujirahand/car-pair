@@ -34,6 +34,15 @@ class PairingTemplateTest {
     public function testErrorHasNoDecideButton() {
         $html = $this->render(['error' => 'ドライバーがいません']);
         $this->assert(strpos($html, 'name="decide"') === false, 'エラー時に決定ボタンを出してはいけません');
+        $this->assert(strpos($html, 'pairing-editor.js') === false, 'エラー時には編集機能を読み込まないこと');
+    }
+
+    public function testEditableMembersAndEmptyWalkTarget() {
+        $html = $this->render(['cars' => [[$this->person('甲', true)]], 'walk' => [], 'score' => 0]);
+        foreach (['id="pairing-editor"', 'data-member-id="甲"', 'draggable="true"', 'data-group="0"',
+            'data-group="walk"', 'id="pairing-result"', 'pairing-editor.js', 'aria-pressed="false"'] as $markup) {
+            $this->assert(strpos($html, $markup) !== false, "$markup がありません");
+        }
     }
 
     public function testCompactMobileStyles() {

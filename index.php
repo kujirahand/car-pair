@@ -7,6 +7,7 @@ require_once __DIR__ . '/logic/Auth.php';
 require_once __DIR__ . '/logic/CsvManager.php';
 require_once __DIR__ . '/logic/HistoryManager.php';
 require_once __DIR__ . '/logic/PairingAlgorithm.php';
+require_once __DIR__ . '/logic/PairingEditor.php';
 require_once __DIR__ . '/logic/MemberMatcher.php';
 require_once __DIR__ . '/logic/WorkspaceManager.php';
 
@@ -222,18 +223,24 @@ if ($action === 'pairing') {
             $m['is_driver'] = $driverOverrides[$m['id']] ? '1' : '0';
         }
     }
+    unset($m);
     $historyManager = new HistoryManager($workspacePaths['history']);
+    $pairingMode = PairingAlgorithm::normalizeMode($_SESSION['pairing_mode'] ?? null);
+    $editError = '';
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['decide'])) {
-        // Decide was clicked
-        if (!empty($_POST['pairing_result'])) {
-            $pairingJson = $_POST['pairing_result'];
-            $historyManager->addHistory(json_decode($pairingJson, true));
+        try {
+            $pairingJson = $_POST['pairing_result'] ?? '';
+            $data = is_string($pairingJson) ? json_decode($pairingJson, true) : null;
+            $approved = PairingEditor::validate($data, $members, $pairingMode);
+            $historyManager->addHistory($approved);
             $csv->incrementParticipationCounts($selectedIds);
             unset($_SESSION['selected_members']);
             $_SESSION['flash_message'] = '組合せを保存しました！';
             header('Location: ?action=history');
             exit;
+        } catch (InvalidArgumentException $e) {
+            $editError = $e->getMessage();
         }
     }
 
