@@ -235,6 +235,7 @@ ul, ol { list-style: none; }
 /* Badges & Tags */
 .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: var(--primary); color: white; }
 .family-tag { padding: 0.2rem 0.6rem; border-radius: 6px; background: #e5e7eb; color: #4b5563; font-size: 0.8rem; font-family: monospace; font-weight: bold; }
+.family-initial { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em; padding: 0 0.2em; border: 1px solid hsl(var(--family-hue, 215), 55%, 45%); border-radius: 5px; color: hsl(var(--family-hue, 215), 65%, 25%); background: hsl(var(--family-hue, 215), 70%, 92%); font-size: 0.8rem; line-height: 1; flex-shrink: 0; vertical-align: middle; }
 .gender-m { color: #2563eb; font-weight: 600; }
 .gender-f { color: #db2777; font-weight: 600; }
 
@@ -302,6 +303,16 @@ ul, ol { list-style: none; }
 .driver-icon { font-size: 1.2rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
 
 /* 乗りあわせ候補の操作ボタン: PCではボタン間を広めに空ける(スマホは末尾のメディアクエリで詰める) */
+.pairing-help { margin: 0.75rem 0; color: var(--text-muted); font-size: 0.9rem; }
+#pairing-edit-message { margin-bottom: 0.75rem; min-height: 1.6em; }
+#pairing-editor .passenger-list { min-height: 48px; padding-bottom: 16px; }
+#pairing-editor [data-member-id] { cursor: grab; }
+#pairing-editor [data-member-id]:active { cursor: grabbing; }
+#pairing-editor .is-selected { outline: 2px solid var(--primary); outline-offset: -2px; background: #eef2ff; }
+#pairing-editor .drop-target { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+#pairing-editor .car-card:hover { transform: none; }
+#pairing-editor [tabindex]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
 .bottom-actions {
     display: flex;
     flex-wrap: wrap;

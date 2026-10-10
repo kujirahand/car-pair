@@ -72,4 +72,27 @@ class HistoryReselectTest {
         $html = $this->renderHistory(null);
         $this->assert(strpos($html, 'reselect') === false, '履歴がないときはボタンを出さないこと');
     }
+
+    public function testAlphabeticalCarLabelsOnLatestAndPast() {
+        $record = $this->record();
+        $record['cars'] = array_fill(0, 28, [$this->person(1, true)]);
+        $html = $this->renderHistory($record, [$record]);
+        foreach (['車A', '車B', '車Z', '車AA', '車AB'] as $label) {
+            $this->assert(strpos($html, "<h3>🚗 $label</h3>") !== false, "最新履歴の$label がありません");
+            $this->assert(strpos($html, "<strong>$label:</strong>") !== false, "過去履歴の$label がありません");
+        }
+    }
+    public function testFamilyInitialOnLatestAndPastCarsAndWalk() {
+        $record = $this->record();
+        foreach ($record['cars'] as &$car) {
+            foreach ($car as &$p) $p['family_id'] = '田中家';
+            unset($p);
+        }
+        unset($car);
+        $record['walk'][0]['family_id'] = '鈴木家';
+        $html = $this->renderHistory($record, [$record]);
+        $this->assert(substr_count($html, 'class="family-initial"') === 8, '最新と過去の車・徒歩の全メンバーに家族の枠を表示すること');
+        $this->assert(substr_count($html, '>田</span>') === 6 && substr_count($html, '>鈴</span>') === 2, '家族IDの先頭文字だけを枠内に表示すること');
+        $this->assert(strpos($html, 'family-tag') === false, '旧家族IDの枠を残さないこと');
+    }
 }

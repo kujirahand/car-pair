@@ -34,6 +34,26 @@ class PairingTemplateTest {
     public function testErrorHasNoDecideButton() {
         $html = $this->render(['error' => 'ドライバーがいません']);
         $this->assert(strpos($html, 'name="decide"') === false, 'エラー時に決定ボタンを出してはいけません');
+        $this->assert(strpos($html, 'pairing-editor.js') === false, 'エラー時には編集機能を読み込まないこと');
+    }
+
+    public function testEditableMembersAndEmptyWalkTarget() {
+        $html = $this->render(['cars' => [[$this->person('甲', true)]], 'walk' => [], 'score' => 0]);
+        foreach (['id="pairing-editor"', 'data-member-id="甲"', 'draggable="true"', 'data-group="0"',
+            'data-group="walk"', 'id="pairing-result"', 'pairing-editor.js', 'aria-pressed="false"',
+            'id="add-pairing-group"', '空グループを追加', '手動調整では家族を分けられます'] as $markup) {
+            $this->assert(strpos($html, $markup) !== false, "$markup がありません");
+        }
+    }
+
+    public function testAlphabeticalCarLabels() {
+        $cars = array_fill(0, 28, [$this->person('甲', true)]);
+        $html = $this->render(['cars' => $cars, 'walk' => [], 'score' => 0]);
+        foreach (['車A', '車B', '車Z', '車AA', '車AB'] as $label) {
+            $this->assert(strpos($html, "<h3>🚗 $label</h3>") !== false, "$label の表示がありません");
+            $this->assert(strpos($html, "aria-label=\"{$label}に移動\"") !== false, "$label の操作ラベルがありません");
+        }
+        $this->assert(strpos($html, '車 1') === false, '数字の車名が残っています');
     }
 
     public function testCompactMobileStyles() {
@@ -66,9 +86,14 @@ class PairingTemplateTest {
         $this->assert(strpos($this->render($result), '履歴スコア:</strong> 0.0 ') !== false, '整数のスコアも小数点1桁で表示すること');
     }
 
-    public function testFamilyIdNotShown() {
-        $html = $this->render(['cars' => [[$this->person('甲', true)]], 'walk' => [$this->person('丙', false)], 'score' => 0]);
-        $this->assert(strpos($html, 'family-tag') === false && strpos($html, 'passenger-meta') === false, '家族IDは表示しないこと');
+    public function testFamilyInitialAfterNameInCarsAndWalk() {
+        $a = $this->person('甲', true); $a['family_id'] = '田中家';
+        $b = $this->person('丙', false); $b['family_id'] = '鈴木家';
+        $html = $this->render(['cars' => [[$a]], 'walk' => [$b], 'score' => 0]);
+        $this->assert(substr_count($html, 'class="family-initial"') === 2, '車と徒歩に家族バッジを表示すること');
+        $this->assert(preg_match('/甲<\/strong>\s*<span class="family-initial"[^>]*>田<\/span>/u', $html) === 1, '名前の後ろに家族の先頭1文字を表示すること');
+        $this->assert(strpos($html, '>鈴</span>') !== false, '徒歩にも日本語の先頭文字を表示すること');
+        $this->assert(strpos($html, 'family-tag') === false && strpos($html, 'passenger-meta') === false, '以前の家族ID表示を残さないこと');
     }
 
     public function testNoHeaderMenu() {

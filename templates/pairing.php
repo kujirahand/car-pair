@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../logic/GroupLabel.php';
 // ドライバーを各車の先頭に表示する(同じ役割の中では元の順序を保つ)
 if (!isset($result['error'])) {
     foreach ($result['cars'] as &$carMembers) {
@@ -21,26 +22,32 @@ if (!isset($result['error'])) {
         </div>
     </div>
 <?php else: ?>
+    <?php if (!empty($editError)): ?>
+    <div class="alert alert-danger" role="alert"><?= htmlspecialchars($editError) ?> 候補を作り直しました。</div>
+    <?php endif; ?>
     
     <div class="alert alert-info">
         <strong>組み方:</strong> <?= htmlspecialchars($pairingModeName) ?> &nbsp;
-        <strong>履歴スコア:</strong> <?= number_format((float)$result['score'], 1, '.', '') ?> （小さいと良い）
+        <span id="pairing-score"><strong>履歴スコア:</strong> <?= number_format((float)$result['score'], 1, '.', '') ?> （小さいと良い）</span>
         <span class="float-right text-muted" style="float: right; font-size: 0.85em;">処理時間: <strong><?= $executionTime ?></strong> ms</span>
     </div>
 
-    <div class="cars-grid">
-        <?php $carIndex = 1; ?>
-        <?php foreach ($result['cars'] as $car): ?>
-        <div class="car-card">
+    <p class="pairing-help">名前を移動先のグループにドラッグしてください。別の名前の上にドロップしても、そのグループへ移動します。名前をタップしてから移動先をタップしても操作できます。手動調整では家族を分けられます。空グループに順にメンバーを追加し、決定までに各車へドライバーを配置してください。空のままのグループは保存されません。</p>
+    <button type="button" id="add-pairing-group" class="btn btn-outline mb-4">＋ 空グループを追加</button>
+    <p id="pairing-edit-message" role="status" aria-live="polite"></p>
+    <div class="cars-grid" id="pairing-editor">
+        <?php foreach ($result['cars'] as $carIndex => $car): ?>
+        <div class="car-card" data-group="<?= $carIndex ?>" tabindex="0" aria-label="<?= GroupLabel::car($carIndex) ?>に移動">
             <div class="car-header">
-                <h3>🚗 車 <?= $carIndex++ ?></h3>
+                <h3>🚗 <?= GroupLabel::car($carIndex) ?></h3>
                 <span class="badge"><?= count($car) ?>人</span>
             </div>
             <ul class="passenger-list">
                 <?php foreach ($car as $p): ?>
-                <li class="<?= $p['is_driver'] === '1' ? 'is-driver' : 'is-passenger' ?>">
+                <li class="<?= $p['is_driver'] === '1' ? 'is-driver' : 'is-passenger' ?>" data-member-id="<?= htmlspecialchars((string)$p['id'], ENT_QUOTES, 'UTF-8') ?>" draggable="true" tabindex="0" role="button" aria-label="<?= htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8') ?>を選択・移動" aria-pressed="false">
                     <div class="passenger-info">
                         <strong class="<?= $p['gender'] === 'M' ? 'man' : 'woman' ?>"><?= htmlspecialchars($p['name']) ?></strong>
+                        <?php include __DIR__ . '/family_badge.php'; ?>
                     </div>
                     <span class="driver-icon" title="<?= $p['is_driver'] === '1' ? 'ドライバー' : '乗客' ?>"><?= $p['is_driver'] === '1' ? '🚗' : '👤' ?></span>
                 </li>
@@ -49,24 +56,23 @@ if (!isset($result['error'])) {
         </div>
         <?php endforeach; ?>
         
-        <?php if (!empty($result['walk'])): ?>
-        <div class="car-card" style="border-color: #94a3b8; background: #f8fafc;">
+        <div class="car-card" data-group="walk" tabindex="0" aria-label="徒歩に移動" style="border-color: #94a3b8; background: #f8fafc;">
             <div class="car-header" style="background: #e2e8f0; color: #475569;">
                 <h3>🚶 徒歩</h3>
-                <span class="badge" style="background: #94a3b8;"><?= count($result['walk']) ?>人</span>
+                <span class="badge" style="background: #94a3b8;"><?= count($result['walk'] ?? []) ?>人</span>
             </div>
             <ul class="passenger-list">
-                <?php foreach ($result['walk'] as $p): ?>
-                <li class="is-passenger">
+                <?php foreach ($result['walk'] ?? [] as $p): ?>
+                <li class="is-passenger" data-member-id="<?= htmlspecialchars((string)$p['id'], ENT_QUOTES, 'UTF-8') ?>" draggable="true" tabindex="0" role="button" aria-label="<?= htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8') ?>を選択・移動" aria-pressed="false">
                     <div class="passenger-info">
                         <strong class="<?= $p['gender'] === 'M' ? 'man' : 'woman' ?>"><?= htmlspecialchars($p['name']) ?></strong>
+                        <?php include __DIR__ . '/family_badge.php'; ?>
                     </div>
                     <span class="driver-icon" title="<?= $p['is_driver'] === '1' ? 'ドライバー' : '乗客' ?>"><?= $p['is_driver'] === '1' ? '🚗' : '👤' ?></span>
                 </li>
                 <?php endforeach; ?>
             </ul>
         </div>
-        <?php endif; ?>
     </div>
 
     <!-- Bottom Actions -->
@@ -74,9 +80,10 @@ if (!isset($result['error'])) {
         <a href="?action=select_members" class="btn btn-outline btn-lg mr-3">↩️ メンバーを選び直す</a>
         <a href="?action=pairing" class="btn btn-outline btn-lg mr-3">🔄 組合せをやり直す</a>
         <form action="?action=pairing" method="post" class="inline-block">
-            <input type="hidden" name="pairing_result" value="<?= htmlspecialchars(json_encode(['cars' => $result['cars'], 'walk' => $result['walk'] ?? []])) ?>">
+            <input type="hidden" id="pairing-result" name="pairing_result" value="<?= htmlspecialchars(json_encode(['cars' => $result['cars'], 'walk' => $result['walk'] ?? []])) ?>">
             <button type="submit" name="decide" class="btn btn-success btn-lg shadow-hover">✅ この組合せで決定</button>
         </form>
     </div>
+    <script src="public/pairing-editor.js?v=<?= filemtime(__DIR__ . '/../public/pairing-editor.js') ?>"></script>
 
 <?php endif; ?>
